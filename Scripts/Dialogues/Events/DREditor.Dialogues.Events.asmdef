@@ -1,14 +1,11 @@
 {
-    "name": "DREditor.Dialogues",
+    "name": "DREditor.Dialogues.Events",
     "references": [
-        "GUID:f4013968dd504a34e8946b223dad8518",
-        "GUID:d538fffcaa9fea945b3620c8b0f98d1e",
-        "GUID:eb8ca9916c6dfd243abeccbce8ce7cd1",
-        "GUID:59ea85d383066e54d9af5fa32490510c"
+        "GUID:c210ec0fc0842a84eb8a2f7e390764bd"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": true,
+    "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

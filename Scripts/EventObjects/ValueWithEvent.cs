@@ -201,7 +201,5 @@ namespace EventObjects
     [Serializable] public class GameObjectEvent : UnityEvent<GameObject>{}
     
     [Serializable] public class TransformEvent : UnityEvent<PosRot>{}
-    
 
-    
 }

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using JetBrains.Annotations;
+using DREditor.Audio;
 using DREditor.Characters;
+using DREditor.Dialogues.Events;
 using EventObjects;
 
 namespace DREditor.Dialogues
@@ -21,6 +23,9 @@ namespace DREditor.Dialogues
         [HideInInspector]
         public CharacterDatabase Speakers;
 
+        [HideInInspector]
+        public Playlist MusicPlaylist;
+        
         public string[] GetCharacterNames()
         {
             if (Speakers == null)
@@ -87,6 +92,7 @@ namespace DREditor.Dialogues
         public AudioClip VoiceSFX;
         public List<AudioClip> SFX = new List<AudioClip>();
         public List<SceneEvent> Events = new List<SceneEvent>();
+        [SerializeReference] public List<IDialogueEvent> DiaEvents;
         public float TimeToNextLine;
         public bool AutomaticLine;
         public Expression Expression;
