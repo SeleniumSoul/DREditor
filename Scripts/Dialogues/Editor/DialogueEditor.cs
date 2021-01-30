@@ -472,7 +472,7 @@ namespace DREditor.Dialogues.Editor
 
 									else
                                     {
-                                        EditorGUILayout.HelpBox("Illegal Event Type.\n", MessageType.Error, true);
+                                        EditorGUILayout.HelpBox("Unsupported Event Type.", MessageType.Error, true);
                                     }
 
                                     EditorGUILayout.EndVertical();

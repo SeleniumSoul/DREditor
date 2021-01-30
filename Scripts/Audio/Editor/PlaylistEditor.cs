@@ -57,6 +57,7 @@ namespace DREditor.Audio.Editor
 
                     EditorGUILayout.BeginVertical();
 
+                    EditorGUILayout.LabelField("Track #" + (i + 1));
                     playlist.Musics[i].Title = EditorGUILayout.DelayedTextField("Title", playlist.Musics[i].Title);
                     playlist.Musics[i].BGM = (AudioClip)EditorGUILayout.ObjectField("Music File", playlist.Musics[i].BGM, typeof(AudioClip), false);
 
