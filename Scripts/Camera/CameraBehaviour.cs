@@ -69,11 +69,6 @@ namespace DREditor.Camera
                 transform.localEulerAngles = new Vector3(transform.localEulerAngles.x, Player.localEulerAngles.y, transform.localEulerAngles.z);
             }
 
-            if (HeadbobbingModifier)
-            {
-                transform.position = transform.position + new Vector3(0, HeadbobbingModifier.GetYBobAmount(), 0);
-            }
-
             if (CameraShake && InCameraShakeMode.Value)
             {
                 if (CameraShake.Enabled)
@@ -93,11 +88,14 @@ namespace DREditor.Camera
                     // ETween.Step(transform.localPosition, originalPos + ShakeOffset, 0.2f);
                 }
             }
+        }
 
-
-
-
-
+        void FixedUpdate()
+        {
+            if (HeadbobbingModifier)
+            {
+                transform.position = transform.position + new Vector3(0, HeadbobbingModifier.GetYBobAmount(), 0);
+            }
         }
     }
 }
