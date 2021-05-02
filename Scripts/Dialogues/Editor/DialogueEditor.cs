@@ -400,6 +400,7 @@ namespace DREditor.Dialogues.Editor
 										Copy.AliasNumber = dia.Lines[i].AliasNumber;
 
 										dia.Lines.Insert(i + 1, Copy);
+										serializedObject.Update();
 									}
 
 									if (GUILayout.Button("+", GUILayout.Width(20)))
