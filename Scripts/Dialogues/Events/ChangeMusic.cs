@@ -1,7 +1,6 @@
 ﻿//Change Character Focus Dialogue Event script by SeleniumSoul for DREditor.
 
 using System;
-using UnityEngine;
 
 namespace DREditor.Dialogues.Events
 {
@@ -17,7 +16,7 @@ namespace DREditor.Dialogues.Events
         //Commented code below will be used instead if ever Unity supports
         //serializing ValueTuples. I'm going to use the h**l out of it. 
         //                                                -SeleniumSoul
-
+        
         //public ValueTuple<int> CMValue;
 
         public CMTuple CMValue;

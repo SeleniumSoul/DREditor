@@ -170,341 +170,344 @@ namespace DREditor.Dialogues.Editor
 					}
 
 					GUI.backgroundColor = color;
+
 					using (new EditorGUILayout.HorizontalScope("Box"))
 					{
-						using (new EditorGUILayout.VerticalScope(GUILayout.Width(120)))
+						using (new EditorGUILayout.VerticalScope())
 						{
-							GUI.backgroundColor = dia.Color;
-							var prependedArray = ContainerUtil.PrependedList(dia.GetCharacterNames(), "<No Character>");
-							currLine.SpeakerNumber = EditorGUILayout.IntPopup(currLine.SpeakerNumber, prependedArray,
-								ContainerUtil.Iota(prependedArray.Length, -1), GUILayout.Width(130));
-							currLine.Speaker = currLine.SpeakerNumber == -1 ? null : dia.Speakers.Characters[currLine.SpeakerNumber];
-
-							if (dia.Lines[i].Speaker)
-							{
-								var aliasNames = new string[dia.Lines[i].Speaker.Aliases.Count + 1];
-								aliasNames[0] = "(No Alias)";
-
-								for (int j = 1; j < dia.Lines[i].Speaker.Aliases.Count + 1; j++)
-								{
-									aliasNames[j] = dia.Lines[i].Speaker.Aliases[j - 1].Name;
-								}
-								dia.Lines[i].AliasNumber = EditorGUILayout.IntPopup(dia.Lines[i].AliasNumber,
-									aliasNames, dia.getAliasesIntValues(dia.Lines[i].Speaker),
-										GUILayout.Width(130));
-							}
-
 							using (new EditorGUILayout.HorizontalScope())
 							{
-								GUILayout.Label("Voice", GUILayout.Width(35));
-								dia.Lines[i].VoiceSFX =
-									EditorGUILayout.ObjectField(dia.Lines[i].VoiceSFX, typeof(AudioClip), false,
-									GUILayout.Width(90)) as AudioClip;
-							}
+								GUILayout.Space(4f);
 
-							if (dia.Lines[i].SFX != null)
-							{
-								for (var j = 0; j < dia.Lines[i].SFX.Count; j++)
+								//Column 1
+								using (new EditorGUILayout.VerticalScope())
 								{
+									GUI.backgroundColor = dia.Color;
+									var prependedArray = ContainerUtil.PrependedList(dia.GetCharacterNames(), "<No Character>");
+									currLine.SpeakerNumber = EditorGUILayout.IntPopup(currLine.SpeakerNumber, prependedArray,
+										ContainerUtil.Iota(prependedArray.Length, -1), GUILayout.Width(130));
+									currLine.Speaker = currLine.SpeakerNumber == -1 ? null : dia.Speakers.Characters[currLine.SpeakerNumber];
+
+									if (dia.Lines[i].Speaker)
+									{
+										var aliasNames = new string[dia.Lines[i].Speaker.Aliases.Count + 1];
+										aliasNames[0] = "(No Alias)";
+
+										for (int j = 1; j < dia.Lines[i].Speaker.Aliases.Count + 1; j++)
+										{
+											aliasNames[j] = dia.Lines[i].Speaker.Aliases[j - 1].Name;
+										}
+										dia.Lines[i].AliasNumber = EditorGUILayout.IntPopup(dia.Lines[i].AliasNumber,
+											aliasNames, dia.getAliasesIntValues(dia.Lines[i].Speaker),
+												GUILayout.Width(130));
+									}
+
 									using (new EditorGUILayout.HorizontalScope())
 									{
-										EditorGUI.BeginDisabledGroup(dia.Lines[i].SFX[j] == null);
+										GUILayout.Label("Voice", GUILayout.Width(35));
+										dia.Lines[i].VoiceSFX =
+											EditorGUILayout.ObjectField(dia.Lines[i].VoiceSFX, typeof(AudioClip), false,
+											GUILayout.Width(90)) as AudioClip;
+									}
 
-										if (GUILayout.Button(">", GUILayout.Width(20)))
+									if (dia.Lines[i].SFX != null)
+									{
+										for (var j = 0; j < dia.Lines[i].SFX.Count; j++)
 										{
-											PublicAudioUtil.PlayClip(dia.Lines[i].SFX[j]);
-										}
+											using (new EditorGUILayout.HorizontalScope())
+											{
+												EditorGUI.BeginDisabledGroup(dia.Lines[i].SFX[j] == null);
 
-										EditorGUI.EndDisabledGroup();
+												if (GUILayout.Button(">", GUILayout.Width(20)))
+												{
+													PublicAudioUtil.PlayClip(dia.Lines[i].SFX[j]);
+												}
 
-										dia.Lines[i].SFX[j] =
-											(AudioClip)EditorGUILayout.ObjectField(dia.Lines[i].SFX[j], typeof(AudioClip), false,
-												GUILayout.Width(76));
+												EditorGUI.EndDisabledGroup();
 
-										if (GUILayout.Button("x", GUILayout.Width(20)))
-										{
-											dia.Lines[i].SFX.Remove(dia.Lines[i].SFX[j]);
+												dia.Lines[i].SFX[j] =
+													(AudioClip)EditorGUILayout.ObjectField(dia.Lines[i].SFX[j], typeof(AudioClip), false,
+														GUILayout.Width(76));
+
+												if (GUILayout.Button("x", GUILayout.Width(20)))
+												{
+													dia.Lines[i].SFX.Remove(dia.Lines[i].SFX[j]);
+												}
+											}
 										}
 									}
-								}
-							}
 
-							if (GUILayout.Button("Add Sound"))
-							{
-								dia.Lines[i].SFX.Add(_sfx);
-							}
+									if (GUILayout.Button("Add Sound", GUILayout.Width(130)))
+									{
+										dia.Lines[i].SFX.Add(_sfx);
+									}
 
-							if (dia.Lines[i].Events != null)
-							{
-								for (var j = 0; j < dia.Lines[i].Events.Count; j++)
-								{
+									if (dia.Lines[i].Events != null)
+									{
+										for (var j = 0; j < dia.Lines[i].Events.Count; j++)
+										{
+											using (new EditorGUILayout.HorizontalScope())
+											{
+												dia.Lines[i].Events[j] = (SceneEvent)EditorGUILayout.ObjectField(dia.Lines[i].Events[j], typeof(SceneEvent), false, GUILayout.Width(100));
+												if (GUILayout.Button("x", GUILayout.Width(20)))
+												{
+													dia.Lines[i].Events.Remove(dia.Lines[i].Events[j]);
+												}
+											}
+										}
+									}
+
+									if (GUILayout.Button("Add Scene Event", GUILayout.Width(130)))
+									{
+										dia.Lines[i].Events.Add(CreateInstance<SceneEvent>());
+									}
+
 									using (new EditorGUILayout.HorizontalScope())
 									{
-										dia.Lines[i].Events[j] = (SceneEvent)EditorGUILayout.ObjectField(dia.Lines[i].Events[j], typeof(SceneEvent), false, GUILayout.Width(100));
-										if (GUILayout.Button("x", GUILayout.Width(20)))
+										GUILayout.Label("Automatic", GUILayout.Width(60));
+										dia.Lines[i].AutomaticLine = EditorGUILayout.Toggle(dia.Lines[i].AutomaticLine);
+									}
+
+									if (dia.Lines[i].AutomaticLine)
+									{
+										using (new EditorGUILayout.HorizontalScope())
 										{
-											dia.Lines[i].Events.Remove(dia.Lines[i].Events[j]);
+											dia.Lines[i].TimeToNextLine = EditorGUILayout.FloatField(dia.Lines[i].TimeToNextLine, GUILayout.Width(60));
 										}
 									}
 								}
-							}
 
-							if (GUILayout.Button("Add Scene Event"))
-							{
-								dia.Lines[i].Events.Add(CreateInstance<SceneEvent>());
-							}
-
-							using (new EditorGUILayout.HorizontalScope())
-							{
-								GUILayout.Label("Automatic", GUILayout.Width(60));
-								dia.Lines[i].AutomaticLine = EditorGUILayout.Toggle(dia.Lines[i].AutomaticLine);
-							}
-
-							#region Dialogue Events
-
-							if (dia.Lines[i].DiaEvents != null)
-							{
-								for (var j = 0; j < dia.Lines[i].DiaEvents.Count; j++)
+								//Column 2
+								if (dia.Lines[i].Speaker != null && !IsProtagonist(dia.Lines[i].Speaker))
 								{
-									using (new EditorGUILayout.HorizontalScope())
+									using (new EditorGUILayout.VerticalScope("Box"))
 									{
-										//dia.Lines[i].DiaEvents[j].type = (DialogueEventType)EditorGUILayout.EnumPopup(dia.Lines[i].DiaEvents[j].type, GUILayout.Width(105));
-									}
-								}
-							}
+										var exprs = dia.Lines[i].Speaker.Expressions.Count;
 
-							#endregion
-
-							if (dia.Lines[i].AutomaticLine)
-							{
-								using (new EditorGUILayout.HorizontalScope())
-								{
-									dia.Lines[i].TimeToNextLine = EditorGUILayout.FloatField(dia.Lines[i].TimeToNextLine, GUILayout.Width(60));
-								}
-							}
-						}
-						
-						if (dia.Lines[i].Speaker != null && !IsProtagonist(dia.Lines[i].Speaker))
-						{
-							using (new EditorGUILayout.VerticalScope("Box"))
-							{
-								var exprs = dia.Lines[i].Speaker.Expressions.Count;
-
-								if (exprs < dia.Lines[i].ExpressionNumber)
-								{
-									dia.Lines[i].ExpressionNumber = 0;
-								}
-
-								var expressionNames = new string[dia.Lines[i].Speaker.Expressions.Count + 1];
-								expressionNames[0] = "<No change>";
-
-								for (int j = 1; j < dia.Lines[i].Speaker.Expressions.Count + 1; j++)
-								{
-									expressionNames[j] = dia.Lines[i].Speaker.Expressions[j - 1].Name;
-								}
-
-								if (dia.Lines[i].Expression != null)
-								{
-									GUIStyle expr = new GUIStyle();
-									if (dia.Lines[i].Expression.Sprite != null && dia.Lines[i].ExpressionNumber > 0)
-									{
-										var tex = Utility.Editor.HandyFields.GetMaterialTexture(dia.Lines[i].Expression.Sprite);
-										if (tex)
+										if (exprs < dia.Lines[i].ExpressionNumber)
 										{
-											expr.normal.background = tex;
+											dia.Lines[i].ExpressionNumber = 0;
+										}
+
+										var expressionNames = new string[dia.Lines[i].Speaker.Expressions.Count + 1];
+										expressionNames[0] = "<No change>";
+
+										for (int j = 1; j < dia.Lines[i].Speaker.Expressions.Count + 1; j++)
+										{
+											expressionNames[j] = dia.Lines[i].Speaker.Expressions[j - 1].Name;
+										}
+
+										if (dia.Lines[i].Expression != null)
+										{
+											GUIStyle expr = new GUIStyle();
+											if (dia.Lines[i].Expression.Sprite != null && dia.Lines[i].ExpressionNumber > 0)
+											{
+												var tex = Utility.Editor.HandyFields.GetMaterialTexture(dia.Lines[i].Expression.Sprite);
+												if (tex)
+												{
+													expr.normal.background = tex;
+												}
+											}
+
+											EditorGUILayout.LabelField(GUIContent.none, expr, GUILayout.Width(100),
+												GUILayout.Height(100));
+										}
+
+										
+										dia.Lines[i].ExpressionNumber = EditorGUILayout.IntPopup(dia.Lines[i].ExpressionNumber,
+											expressionNames, dia.getExpressionIntValues(dia.Lines[i].Speaker), GUILayout.Width(100));
+										
+										if (dia.Lines[i].ExpressionNumber > 0)
+										{
+											dia.Lines[i].Expression =
+												dia.Lines[i].Speaker.Expressions[dia.Lines[i].ExpressionNumber - 1];
+										}
+										else
+										{
+											dia.Lines[i].Expression = new Expression();
 										}
 									}
-
-									EditorGUILayout.LabelField(GUIContent.none, expr, GUILayout.Width(100),
-										GUILayout.Height(100));
-								}
-
-								dia.Lines[i].ExpressionNumber = EditorGUILayout.IntPopup(dia.Lines[i].ExpressionNumber,
-									expressionNames, dia.getExpressionIntValues(dia.Lines[i].Speaker), GUILayout.Width(100));
-
-
-								if (dia.Lines[i].ExpressionNumber > 0)
-								{
-									dia.Lines[i].Expression =
-										dia.Lines[i].Speaker.Expressions[dia.Lines[i].ExpressionNumber - 1];
 								}
 								else
 								{
-									dia.Lines[i].Expression = new Expression();
+									//EditorGUILayout.LabelField(GUIContent.none, GUILayout.Width(108), GUILayout.Height(100));
 								}
-							}
-						}
-						else
-						{
-							EditorGUILayout.LabelField(GUIContent.none, GUILayout.Width(108),
-								GUILayout.Height(100));
-						}
 
-						GUI.backgroundColor = Color.white;
-						var propLine = propLines.GetArrayElementAtIndex(i);
-						var propLineText = propLine.FindPropertyRelative("Text");
-						propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(125), GUILayout.Width(Screen.width - 310));
+								//Column 3
+								GUI.backgroundColor = Color.white;
+								var propLine = propLines.GetArrayElementAtIndex(i);
+								var propLineText = propLine.FindPropertyRelative("Text");
+								propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(125), GUILayout.Width(Screen.width - 315));
 
-						GUI.backgroundColor = dia.Color;
+								GUI.backgroundColor = dia.Color;
 
-						using (new EditorGUILayout.VerticalScope())
-						{
-							if (dia.Lines.Count > 1)
-							{
-								if (GUILayout.Button("-", GUILayout.Width(20)) && dia.Lines.Count > 1)
+								//Column 4
+								using (new EditorGUILayout.VerticalScope())
 								{
-									GUI.FocusControl(null);
-									dia.Lines.Remove(dia.Lines[i]);
-									serializedObject.Update();
-								}
-							}
-
-							if (i > 0)
-							{
-								if (GUILayout.Button("ʌ", GUILayout.Width(20)) && i > 0)
-								{
+									if (dia.Lines.Count > 1)
 									{
-										GUI.FocusControl(null);
-										var line = dia.Lines[i - 1];
-
-										dia.Lines[i - 1] = dia.Lines[i];
-										dia.Lines[i] = line;
+										if (GUILayout.Button("-", GUILayout.Width(20)) && dia.Lines.Count > 1)
+										{
+											GUI.FocusControl(null);
+											dia.Lines.Remove(dia.Lines[i]);
+											serializedObject.Update();
+										}
 									}
+
+									if (i > 0)
+									{
+										if (GUILayout.Button("ʌ", GUILayout.Width(20)) && i > 0)
+										{
+											{
+												GUI.FocusControl(null);
+												var line = dia.Lines[i - 1];
+
+												dia.Lines[i - 1] = dia.Lines[i];
+												dia.Lines[i] = line;
+											}
+										}
+									}
+
+									if (i < dia.Lines.Count - 1)
+									{
+										if (GUILayout.Button("v", GUILayout.Width(20)))
+										{
+											GUI.FocusControl(null);
+											var line = dia.Lines[i + 1];
+
+											dia.Lines[i + 1] = dia.Lines[i];
+											dia.Lines[i] = line;
+										}
+									}
+									GUILayout.Space(20f);
+									GUILayout.FlexibleSpace();
+
+									if (GUILayout.Button("*", GUILayout.Width(20)))
+									{
+										Line Copy = new Line();
+
+										Copy.translationKey = dia.Lines[i].translationKey;
+										Copy.SpeakerNumber = dia.Lines[i].SpeakerNumber;
+										Copy.Text = dia.Lines[i].Text;
+										Copy.VoiceSFX = dia.Lines[i].VoiceSFX;
+										Copy.SFX = dia.Lines[i].SFX;
+										Copy.Events = dia.Lines[i].Events;
+										Copy.DiaEvents = new List<IDialogueEvent>();
+										Copy.TimeToNextLine = dia.Lines[i].TimeToNextLine;
+										Copy.AutomaticLine = dia.Lines[i].AutomaticLine;
+										Copy.Expression = dia.Lines[i].Expression;
+										Copy.ExpressionNumber = dia.Lines[i].ExpressionNumber;
+										Copy.AliasNumber = dia.Lines[i].AliasNumber;
+
+										dia.Lines.Insert(i + 1, Copy);
+									}
+
+									if (GUILayout.Button("+", GUILayout.Width(20)))
+									{
+										dia.Lines.Insert(i + 1, new Line());
+										serializedObject.Update();
+									}
+									GUILayout.FlexibleSpace();
 								}
 							}
 
-							if (i < dia.Lines.Count - 1)
-							{
-								if (GUILayout.Button("v", GUILayout.Width(20)))
-								{
-									GUI.FocusControl(null);
-									var line = dia.Lines[i + 1];
+							GUILayout.Space(5f);
 
-									dia.Lines[i + 1] = dia.Lines[i];
-									dia.Lines[i] = line;
-								}
-							}
-							
-							GUILayout.FlexibleSpace();
-
-							if (GUILayout.Button("*", GUILayout.Width(20)))
-								{
-									Line Copy = new Line();
-
-									Copy.translationKey = dia.Lines[i].translationKey;
-									Copy.SpeakerNumber = dia.Lines[i].SpeakerNumber;
-									Copy.Text = dia.Lines[i].Text;
-									Copy.VoiceSFX = dia.Lines[i].VoiceSFX;
-									Copy.SFX = dia.Lines[i].SFX;
-									Copy.Events = dia.Lines[i].Events;
-									Copy.DiaEvents = new List<IDialogueEvent>();
-									Copy.TimeToNextLine = dia.Lines[i].TimeToNextLine;
-									Copy.AutomaticLine = dia.Lines[i].AutomaticLine;
-									Copy.Expression = dia.Lines[i].Expression;
-									Copy.ExpressionNumber = dia.Lines[i].ExpressionNumber;
-									Copy.AliasNumber = dia.Lines[i].AliasNumber;
-
-									dia.Lines.Insert(i + 1, Copy);
-								}
-
-							if (GUILayout.Button("+", GUILayout.Width(20)))
-							{
-								dia.Lines.Insert(i + 1, new Line());
-								serializedObject.Update();
-							}
-						}
-					}
-
-					using (new EditorGUILayout.VerticalScope())
-					{
-						GUILayout.FlexibleSpace();
-						if (dia.Lines[i].DiaEvents != null)
-						{
 							using (new EditorGUILayout.VerticalScope())
 							{
-								for (int d = 0; d < dia.Lines[i].DiaEvents.Count; d++)
+								GUILayout.FlexibleSpace();
+								if (dia.Lines[i].DiaEvents != null)
 								{
-									EditorGUILayout.BeginHorizontal("Box");
-									EditorGUILayout.BeginVertical();
-
-                                    // 	case (DialogueEventType.Flash):
-                                    // 		EditorGUILayout.HelpBox("Flash. Makes the Character Sprite go \"DING!\"", MessageType.Info, true);
-                                    // 		break;
-
-                                    //     //Temporarily Unused
-                                    //     case (DialogueEventType.Emotions):
-                                    // 		EditorGUILayout.HelpBox("Emotions is unavailable and is currently being worked on.", MessageType.Warning, true);
-                                    //         break;
-
-                                    //     //Temporarily Unused
-                                    //     case (DialogueEventType.Custom):
-                                    //         //dia.Lines[i].DiaEvents[d].CEvent = EditorGUILayout.DelayedTextField("Invoke what Event? ", dia.Lines[i].DiaEvents[d].CEvent);
-                                    //         EditorGUILayout.HelpBox("Make the Dialogue Manager invoke a custom event.\nAlso unavailable for the time being.", MessageType.Warning, true);
-                                    //         break;
-                                    // }
-
-                                    if (dia.Lines[i].DiaEvents[d] is ChangeMusic music)
-                                    {
-                                        EditorGUILayout.LabelField("Change Music");
-                                        music.CMValue.MusicNum = EditorGUILayout.IntPopup("BGM:", music.CMValue.MusicNum, dia.MusicPlaylist.GetAudioTitles(), dia.MusicPlaylist.GetAudioCount());
-                                        EditorGUILayout.HelpBox("Change the music at this line.", MessageType.Info, true);
-                                    }
-
-                                    else if (dia.Lines[i].DiaEvents[d] is ChangeWindowPattern pattern)
-                                    {
-                                        EditorGUILayout.LabelField("Change Window Pattern");
-                                        pattern.CWPValue.PatternName = EditorGUILayout.DelayedTextField("Position: ", pattern.CWPValue.PatternName);
-                                        EditorGUILayout.HelpBox("Change the positions of the panel windows when talking to somebody.", MessageType.Info, true);
-                                    }
-
-                                    else if (dia.Lines[i].DiaEvents[d] is ChangeCharacterFocus focus)
-                                    {
-                                        EditorGUILayout.LabelField("Character Focus");
-                                        focus.CCFValue.PanelNum = EditorGUILayout.IntPopup("Panel Camera:", focus.CCFValue.PanelNum, new string[] { "Middle Panel", "Right Panel", "Left Panel" }, new int[] { 0, 1, 2 });
-                                        focus.CCFValue.CamTrans = EditorGUILayout.Vector3Field("Camera Position:", focus.CCFValue.CamTrans);
-                                        EditorGUILayout.HelpBox("Choose which panel would change its focused character.\nNote: Changing the Camera Focus Position values to non-zero would force its camera transform.", MessageType.Info, true);
-                                    }
-
-									else if (dia.Lines[i].DiaEvents[d] is IDialogueEvent eventerror)
+									using (new EditorGUILayout.VerticalScope())
 									{
-										EditorGUILayout.HelpBox("Unspecified Event Type.", MessageType.Error, true);
+										for (int d = 0; d < dia.Lines[i].DiaEvents.Count; d++)
+										{
+											EditorGUILayout.BeginHorizontal("Box");
+											EditorGUILayout.BeginVertical();
+
+											// 	case (DialogueEventType.Flash):
+											// 		EditorGUILayout.HelpBox("Flash. Makes the Character Sprite go \"DING!\"", MessageType.Info, true);
+											// 		break;
+
+											//     //Temporarily Unused
+											//     case (DialogueEventType.Emotions):
+											// 		EditorGUILayout.HelpBox("Emotions is unavailable and is currently being worked on.", MessageType.Warning, true);
+											//         break;
+											// }
+
+											if (dia.Lines[i].DiaEvents[d] is ChangeMusic music)
+											{
+												EditorGUILayout.LabelField("Change Music");
+												music.CMValue.MusicNum = EditorGUILayout.IntPopup("BGM:", music.CMValue.MusicNum, dia.MusicPlaylist.GetAudioTitles(), dia.MusicPlaylist.GetAudioCount());
+												EditorGUILayout.HelpBox("Change the music at this line.", MessageType.Info, true);
+											}
+
+											else if (dia.Lines[i].DiaEvents[d] is ChangeWindowPattern pattern)
+											{
+												EditorGUILayout.LabelField("Change Window Pattern");
+												pattern.CWPValue.PatternName = EditorGUILayout.DelayedTextField("Position: ", pattern.CWPValue.PatternName);
+												EditorGUILayout.HelpBox("Change the positions of the panel windows when talking to somebody.", MessageType.Info, true);
+											}
+
+											else if (dia.Lines[i].DiaEvents[d] is ChangeCharacterFocus focus)
+											{
+												EditorGUILayout.LabelField("Character Focus");
+												focus.CCFValue.PanelNum = EditorGUILayout.IntPopup("Panel Camera:", focus.CCFValue.PanelNum, new string[] { "Middle Panel", "Right Panel", "Left Panel" }, new int[] { 0, 1, 2 });
+												focus.CCFValue.CamTrans = EditorGUILayout.Vector3Field("Camera Position:", focus.CCFValue.CamTrans);
+												EditorGUILayout.HelpBox("Choose which panel would change its focused character.\nNote: Changing the Camera Position values to non-zero would force its camera transform.", MessageType.Info, true);
+											}
+
+											else if (dia.Lines[i].DiaEvents[d] is CustomEvent custom)
+											{
+												custom.CEValue.EventName = EditorGUILayout.DelayedTextField("Invoke what Event? ", custom.CEValue.EventName);
+												EditorGUILayout.HelpBox("Make the Dialogue Manager invoke a custom event.\nDoes not accept parameters at the time being.", MessageType.Info, true);
+											}
+
+											else if (dia.Lines[i].DiaEvents[d] is IDialogueEvent eventerror)
+											{
+												EditorGUILayout.HelpBox("Unspecified Event Type.", MessageType.Error, true);
+											}
+
+											else
+											{
+												EditorGUILayout.HelpBox("Unsupported Event Type.", MessageType.Error, true);
+											}
+
+											EditorGUILayout.EndVertical();
+
+											if (GUILayout.Button("x", GUILayout.Width(20)))
+											{
+												dia.Lines[i].DiaEvents.Remove(dia.Lines[i].DiaEvents[d]);
+											}
+
+											EditorGUILayout.EndHorizontal();
+										}
+
+										EditorGUILayout.BeginHorizontal("Box");
+										_DiaEvents = (DiaEvents)EditorGUILayout.EnumPopup(_DiaEvents);
+
+										if (GUILayout.Button("Add Dialogue Event"))
+										{
+											switch (_DiaEvents)
+											{
+												case DiaEvents.ChangeCharacterFocus:
+													dia.Lines[i].DiaEvents.Add(new ChangeCharacterFocus());
+													break;
+												case DiaEvents.ChangeMusic:
+													dia.Lines[i].DiaEvents.Add(new ChangeMusic());
+													break;
+												case DiaEvents.ChangeWindowPattern:
+													dia.Lines[i].DiaEvents.Add(new ChangeWindowPattern());
+													break;
+												case DiaEvents.Custom:
+													dia.Lines[i].DiaEvents.Add(new CustomEvent());
+													break;
+											}
+										}
+
+										EditorGUILayout.EndHorizontal();
 									}
-
-									else
-                                    {
-                                        EditorGUILayout.HelpBox("Unsupported Event Type.", MessageType.Error, true);
-                                    }
-
-                                    EditorGUILayout.EndVertical();
-
-									if (GUILayout.Button("x", GUILayout.Width(20)))
-									{
-										dia.Lines[i].DiaEvents.Remove(dia.Lines[i].DiaEvents[d]);
-									}
-
-									EditorGUILayout.EndHorizontal();
 								}
-
-								EditorGUILayout.BeginHorizontal("Box");
-								_DiaEvents = (DiaEvents)EditorGUILayout.EnumPopup(_DiaEvents);
-
-								if (GUILayout.Button("Add Dialogue Event"))
-								{
-									switch (_DiaEvents)
-									{
-										case DiaEvents.ChangeCharacterFocus:
-											dia.Lines[i].DiaEvents.Add(new ChangeCharacterFocus());
-											break;
-										case DiaEvents.ChangeMusic:
-											dia.Lines[i].DiaEvents.Add(new ChangeMusic());
-											break;
-										case DiaEvents.ChangeWindowPattern:
-											dia.Lines[i].DiaEvents.Add(new ChangeWindowPattern());
-											break;
-									}
-								}
-
-								EditorGUILayout.EndHorizontal();
 							}
 						}
 					}

@@ -1,7 +1,8 @@
 {
     "name": "DREditor.Dialogues.Events",
     "references": [
-        "GUID:c210ec0fc0842a84eb8a2f7e390764bd"
+        "GUID:c210ec0fc0842a84eb8a2f7e390764bd",
+        "GUID:f4013968dd504a34e8946b223dad8518"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
