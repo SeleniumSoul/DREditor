@@ -1,7 +1,7 @@
-﻿
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
+using DREditor.Utility.Editor;
 
 namespace DREditor.Characters.Editor
 {
@@ -10,33 +10,52 @@ namespace DREditor.Characters.Editor
     {
         private Headmaster hms;
 
-        private void OnEnable()
-        {
-            hms = (Headmaster) target;
-        }
+        private void OnEnable() => hms = target as Headmaster;
 
 
         public override void OnInspectorGUI()
         {
             Label("Headmaster Editor");
-            
-            NameForm();
 
+            HeadmasterLabel();
             DefaultSprite();
 
+            NameForm();
             Label("Sprites");
-
             Sprites();
-            
+
             EditorUtility.SetDirty(hms);
         }
-        
+
+        private void HeadmasterLabel()
+        {
+            var bigLabelStyle = new GUIStyle
+            {
+                fontSize = 25,
+                fontStyle = FontStyle.Bold
+            };
+            GUILayout.Space(15);
+            using (new EditorGUILayout.HorizontalScope("box"))
+            {
+                GUILayout.FlexibleSpace();
+
+                var labelText = hms.LastName == "" && hms.FirstName == "" ? "No Name" : "";
+
+                GUILayout.Label(labelText + hms.LastName + " " + hms.FirstName, bigLabelStyle);
+                GUILayout.FlexibleSpace();
+            }
+            bigLabelStyle.fontSize = 15;
+        }
+
         private void NameForm()
         {
             EditorGUILayout.BeginVertical("Box");
-            hms.LastName = StringField("Last Name: ", hms.LastName);
-            hms.FirstName = StringField("First Name: ", hms.FirstName);
-            
+            //hms.LastName = StringField("Last Name: ", hms.LastName);
+            hms.FirstName = StringField("Name: ", hms.FirstName);
+            hms.Nameplate = TextureFieldLabeledHorizontal("Default Nameplate: ", hms.Nameplate);
+            hms.Headshot = TextureFieldLabeledHorizontal("Default Headshot: ", hms.Headshot);
+            hms.TrialNameplate = TextureFieldLabeledHorizontal("Trial Nameplate: ", hms.TrialNameplate);
+            hms.TrialHeight = HandyFields.FloatField("Trial Height: ", hms.TrialHeight);
             EditorGUILayout.EndVertical();
             
         }
@@ -141,7 +160,6 @@ namespace DREditor.Characters.Editor
             return result;
         }
         
-
         private static void Label(string label)
         {
             GUI.backgroundColor = Color.white;
@@ -151,6 +169,19 @@ namespace DREditor.Characters.Editor
             
             GUILayout.Label(label, labelStyle);
         }
-        
+
+        private static Texture2D TextureFieldLabeledHorizontal(string label, Texture2D texture)
+        {
+            Texture2D result;
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(label);
+            }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                result = HandyFields.UnityField(texture, 70, 70);
+            }
+            return result;
+        }
     }
 }

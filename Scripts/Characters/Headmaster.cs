@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace DREditor.Characters
 {
@@ -9,13 +7,5 @@ namespace DREditor.Characters
     public class Headmaster : Character
     {
         //public Character Character;
-        
-        //void OnEnable()
-       // {
-        //    if (Character == null)
-        //    {
-         //       Character = CreateInstance<Character>();
-         //   }
-       // }
     }
 }
