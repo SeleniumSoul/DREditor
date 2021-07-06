@@ -28,7 +28,6 @@ namespace DREditor.Dialogues.Editor
 		SerializedProperty propLines;
 
 		[SerializeField] DiaEvents _DiaEvents;
-		SerializedProperty _DiaEventsEditor;
 
 		public void OnEnable()
 		{
@@ -112,32 +111,35 @@ namespace DREditor.Dialogues.Editor
 				dia.Color = EditorGUILayout.ColorField(dia.Color, GUILayout.Width(50));
 			}
 
-			using (new EditorGUILayout.HorizontalScope("Box"))
+			using (new EditorGUILayout.VerticalScope("Box"))
 			{
-				EditorGUILayout.LabelField("Dialogue Nr: ", GUILayout.Width(100));
+				dia.DialogueMode = (BoxMode)EditorGUILayout.EnumPopup("Dialogue Mode:", dia.DialogueMode);
 				GUI.backgroundColor = Color.white;
-				dia.DialogueName = GUILayout.TextField(dia.DialogueName, GUILayout.Width(40));
-
-				if (GUILayout.Button("Update", GUILayout.Width(80)))
+				using (new EditorGUILayout.HorizontalScope())
 				{
-					var path = AssetDatabase.GetAssetPath(dia);
-					var flds = path.Split('/');
-					var nm = flds[flds.Length - 2];
+					if (dia.DialogueName == "") dia.DialogueName = target.name;
+					dia.DialogueName = EditorGUILayout.DelayedTextField("Dialogue Number: ", dia.DialogueName);
 
-					string tx = "";
-					if (dia.Lines.Count > 0)
+					if (GUILayout.Button("Update", GUILayout.Width(80)))
 					{
-						tx = dia.Lines[0].Text.Substring(0, dia.Lines[0].Text.Length > 29 ? 30 : dia.Lines[0].Text.Length);
-						tx = tx.Replace('?', ' ');
+						var path = AssetDatabase.GetAssetPath(dia);
+						var flds = path.Split('/');
+						var nm = flds[flds.Length - 2];
+
+						string tx = "";
+						if (dia.Lines.Count > 0)
+						{
+							tx = dia.Lines[0].Text.Substring(0, dia.Lines[0].Text.Length > 29 ? 30 : dia.Lines[0].Text.Length);
+							tx = tx.Replace('?', ' ');
+						}
+
+						string fileName = nm + "_" + dia.DialogueName + "_" + tx;
+
+						AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(dia), fileName);
+						Debug.Log(fileName);
+						Debug.Log(AssetDatabase.GetAssetPath(dia));
 					}
-
-					string fileName = nm + "_" + dia.DialogueName + "_" + tx;
-
-					AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(dia), fileName);
-					Debug.Log(fileName);
-					Debug.Log(AssetDatabase.GetAssetPath(dia));
 				}
-				GUILayout.Space(Screen.width - 370);
 				GUI.backgroundColor = dia.Color;
 
 			}
@@ -351,6 +353,7 @@ namespace DREditor.Dialogues.Editor
 											GUI.FocusControl(null);
 											dia.Lines.Remove(dia.Lines[i]);
 											serializedObject.Update();
+											return;
 										}
 									}
 
@@ -379,7 +382,7 @@ namespace DREditor.Dialogues.Editor
 											dia.Lines[i] = line;
 										}
 									}
-									GUILayout.Space(20f);
+									GUILayout.Space(25f);
 									GUILayout.FlexibleSpace();
 
 									if (GUILayout.Button("*", GUILayout.Width(20)))
@@ -405,7 +408,7 @@ namespace DREditor.Dialogues.Editor
 
 									if (GUILayout.Button("+", GUILayout.Width(20)))
 									{
-										dia.Lines.Insert(i + 1, new Line());
+                                        dia.Lines.Insert(i + 1, new Line{DiaEvents = new List<IDialogueEvent>()});
 										serializedObject.Update();
 									}
 									GUILayout.FlexibleSpace();
@@ -414,6 +417,7 @@ namespace DREditor.Dialogues.Editor
 
 							GUILayout.Space(5f);
 
+							//DialogueEvents
 							using (new EditorGUILayout.VerticalScope())
 							{
 								GUILayout.FlexibleSpace();
@@ -458,10 +462,16 @@ namespace DREditor.Dialogues.Editor
 												EditorGUILayout.HelpBox("Choose which panel would change its focused character.\nNote: Changing the Camera Position values to non-zero would force its camera transform.", MessageType.Info, true);
 											}
 
+											else if (dia.Lines[i].DiaEvents[d] is ShowCG cg)
+											{
+												cg.SCGValue.CG = (GameObject)EditorGUILayout.ObjectField("CG: ", cg.SCGValue.CG, typeof(GameObject), false);
+												EditorGUILayout.HelpBox("Show CG pictures. \nNote: CGs should be a GameObject Prefab. In case of animated CGs.", MessageType.Info, true);
+											}
+
 											else if (dia.Lines[i].DiaEvents[d] is CustomEvent custom)
 											{
 												custom.CEValue.EventName = EditorGUILayout.DelayedTextField("Invoke what Event? ", custom.CEValue.EventName);
-												EditorGUILayout.HelpBox("Make the Dialogue Manager invoke a custom event.\nDoes not accept parameters at the time being.", MessageType.Info, true);
+												EditorGUILayout.HelpBox("Make the Dialogue Manager invoke a custom event.\nDoes not accept custom parameters at the time being.", MessageType.Info, true);
 											}
 
 											else if (dia.Lines[i].DiaEvents[d] is IDialogueEvent eventerror)
@@ -479,6 +489,7 @@ namespace DREditor.Dialogues.Editor
 											if (GUILayout.Button("x", GUILayout.Width(20)))
 											{
 												dia.Lines[i].DiaEvents.Remove(dia.Lines[i].DiaEvents[d]);
+												Repaint();
 											}
 
 											EditorGUILayout.EndHorizontal();
@@ -499,6 +510,9 @@ namespace DREditor.Dialogues.Editor
 													break;
 												case DiaEvents.ChangeWindowPattern:
 													dia.Lines[i].DiaEvents.Add(new ChangeWindowPattern());
+													break;
+												case DiaEvents.ShowCG:
+													dia.Lines[i].DiaEvents.Add(new ShowCG());
 													break;
 												case DiaEvents.Custom:
 													dia.Lines[i].DiaEvents.Add(new CustomEvent());
@@ -739,7 +753,7 @@ namespace DREditor.Dialogues.Editor
 					{
 						if (GUILayout.Button("New Line", GUILayout.Width(100)))
 						{
-							dia.Lines.Add(new Line());
+							dia.Lines.Add(new Line {DiaEvents = new List<IDialogueEvent>()});
 						}
 					}
 

@@ -10,8 +10,17 @@ using EventObjects;
 
 namespace DREditor.Dialogues
 {
+    //Identifies if the dialogue will be used normally, onCG, or in Trial. Used primarily for the game to know what type of dialogue screen to use.
+    public enum BoxMode
+    {
+        Normal,
+        CG,
+        Trial
+    }
+
     public abstract class DialogueBase : ScriptableObject
     {
+        public BoxMode DialogueMode;
         public string translationKey;
         public string DialogueName = "";
         public Color Color = Color.white;

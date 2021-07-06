@@ -14,8 +14,6 @@ namespace DREditor.Dialogues.Events
     [Serializable]
     public class ChangeWindowPattern : IDialogueEvent
     {
-        //public ValueTuple<string> CWPValue;
-
         public CWPTuple CWPValue;
     }
 }

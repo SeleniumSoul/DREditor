@@ -3,5 +3,10 @@
 namespace DREditor.Dialogues.Events
 {
     public interface IDialogueEvent { }
-    public enum DiaEvents { ChangeWindowPattern, ChangeMusic, ChangeCharacterFocus, Custom }
+    public enum DiaEvents {
+        ChangeWindowPattern,
+        ChangeMusic,
+        ChangeCharacterFocus,
+        ShowCG,
+        Custom }
 }
