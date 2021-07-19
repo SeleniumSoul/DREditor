@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace DREditor.Audio
 {
-    [System.Serializable]
+    [Serializable]
     [CreateAssetMenu(menuName = "DREditor/MusicPlaylist", fileName = "New Music Playlist")]
     public class Playlist : ScriptableObject
     {
@@ -35,7 +35,7 @@ namespace DREditor.Audio
         }
     }
 
-    [System.Serializable]
+    [Serializable]
     public class Music
     {
         public string Title;

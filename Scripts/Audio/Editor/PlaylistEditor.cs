@@ -18,7 +18,7 @@ namespace DREditor.Audio.Editor
 
         public override void OnInspectorGUI()
         {
-            if (playlist.Musics != null)
+            if (playlist.Musics.Count != 0)
             {
                 GUIStyle Title = new GUIStyle
                 {
@@ -126,6 +126,8 @@ namespace DREditor.Audio.Editor
                     playlist.Musics.Add(null);
                 }
             }
+
+            EditorUtility.SetDirty(playlist);
         }
     }
 }

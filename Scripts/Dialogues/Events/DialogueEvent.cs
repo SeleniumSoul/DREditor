@@ -8,5 +8,6 @@ namespace DREditor.Dialogues.Events
         ChangeMusic,
         ChangeCharacterFocus,
         ShowCG,
+        FadeToBlack,
         Custom }
 }

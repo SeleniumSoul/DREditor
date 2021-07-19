@@ -464,8 +464,15 @@ namespace DREditor.Dialogues.Editor
 
 											else if (dia.Lines[i].DiaEvents[d] is ShowCG cg)
 											{
-												cg.SCGValue.CG = (GameObject)EditorGUILayout.ObjectField("CG: ", cg.SCGValue.CG, typeof(GameObject), false);
-												EditorGUILayout.HelpBox("Show CG pictures. \nNote: CGs should be a GameObject Prefab. In case of animated CGs.", MessageType.Info, true);
+												cg.SCGValue.CG = (GameObject)EditorGUILayout.ObjectField("What CG? ", cg.SCGValue.CG, typeof(GameObject), false);
+												//cg.SCGValue.CG = EditorGUILayout.DelayedTextField("What CG? ", cg.SCGValue.CG);
+												EditorGUILayout.HelpBox("Show CG pictures. \n\nNote: CGs should be a GameObject Prefab. In case of animated CGs. Your input must be the same as its name on the Addressables Asset.\n\nWhy type this out? Blame Unity for this.", MessageType.Info, true);
+											}
+
+											else if (dia.Lines[i].DiaEvents[d] is FadeToBlack fade)
+											{
+												fade.FTBValue.FadeSpeed = EditorGUILayout.DelayedFloatField("At what speed?", fade.FTBValue.FadeSpeed);
+												EditorGUILayout.HelpBox("Make the whole screen fade to black.", MessageType.Info, true);
 											}
 
 											else if (dia.Lines[i].DiaEvents[d] is CustomEvent custom)
@@ -513,6 +520,9 @@ namespace DREditor.Dialogues.Editor
 													break;
 												case DiaEvents.ShowCG:
 													dia.Lines[i].DiaEvents.Add(new ShowCG());
+													break;
+												case DiaEvents.FadeToBlack:
+													dia.Lines[i].DiaEvents.Add(new FadeToBlack());
 													break;
 												case DiaEvents.Custom:
 													dia.Lines[i].DiaEvents.Add(new CustomEvent());

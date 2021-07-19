@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace DREditor.Dialogues.Events
 {
+    [Serializable]
     public struct SCGTuple
     {
         public GameObject CG;
