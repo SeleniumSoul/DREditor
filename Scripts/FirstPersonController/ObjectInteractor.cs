@@ -1,8 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using EventObjects;
-using UnityEngine;
 
+using UnityEngine;
+using DREditor.EventObjects;
 namespace DREditor.FPC
 {
     public class ObjectInteractor : MonoBehaviour

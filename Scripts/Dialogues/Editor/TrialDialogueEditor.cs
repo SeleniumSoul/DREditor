@@ -3,6 +3,7 @@
 using UnityEngine;
 using UnityEditor;
 
+using DREditor.EventObjects;
 using DREditor.Characters;
 using DREditor.Utility;
 using DREditor.Utility.Editor;

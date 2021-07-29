@@ -9,7 +9,7 @@ using UnityEngine.UI;
 using DREditor.Camera;
 using DREditor.Dialogues;
 
-namespace DREditor.Debug
+namespace DREditor.Debugging
 {
     [AddComponentMenu("DREditor/Debug/DR Trial Camera Tester v2")]
     public class TrialCameraTesterUI2 : MonoBehaviour

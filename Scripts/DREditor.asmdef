@@ -1,9 +1,9 @@
 {
-    "name": "DREditor.Utility.Editor",
-    "references": [],
-    "includePlatforms": [
-        "Editor"
+    "name": "SeleniumSoul.DREditor",
+    "references": [
+        "Unity.TextMeshPro"
     ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

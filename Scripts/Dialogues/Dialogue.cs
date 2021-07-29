@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using DREditor.Audio;
 using DREditor.Characters;
 using DREditor.Dialogues.Events;
-using EventObjects;
+using DREditor.EventObjects;
 
 namespace DREditor.Dialogues
 {

@@ -1,5 +1,5 @@
-﻿using EventObjects;
-using UnityEngine;
+﻿using UnityEngine;
+using DREditor.EventObjects;
 
 namespace DREditor.Camera
 {

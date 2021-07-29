@@ -2,7 +2,7 @@
 
 using System;
 using UnityEngine;
-using DREditor.TrialEditor;
+using DREditor.Trial;
 
 namespace DREditor.Dialogues.Events
 {

@@ -26,7 +26,7 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-namespace EventObjects.Editor
+namespace DREditor.EventObjects.Editor
 {
     [CustomEditor(typeof(BaseValueWithEvent), true)]
     public class ValueWithEventInspector : UnityEditor.Editor

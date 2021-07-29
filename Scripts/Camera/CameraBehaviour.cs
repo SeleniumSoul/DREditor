@@ -1,8 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using EventObjects;
 using UnityEngine;
 using DREditor;
+using DREditor.EventObjects;
 
 namespace DREditor.Camera
 {
