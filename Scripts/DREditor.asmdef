@@ -1,7 +1,8 @@
 {
     "name": "SeleniumSoul.DREditor",
     "references": [
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
