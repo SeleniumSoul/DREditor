@@ -1,12 +1,13 @@
 {
-    "name": "SeleniumSoul.DREditor",
+    "name": "DREditor",
+    "rootNamespace": "",
     "references": [
         "Unity.TextMeshPro",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

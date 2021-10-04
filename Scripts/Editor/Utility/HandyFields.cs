@@ -75,14 +75,14 @@ namespace DREditor.Utility.Editor
             return result;
         }
 
-        public static string StringField(string name, string value)
+        public static string StringField(string name, string value, int width = 200)
         {
             GUI.backgroundColor = Color.white;
             string result;
             using (new EditorGUILayout.HorizontalScope())
             {
                 GUILayout.Label(name, GUILayout.Width(80));
-                result = EditorGUILayout.TextField(value, GUILayout.Width(200));
+                result = EditorGUILayout.TextField(value, GUILayout.Width(width));
             }
             GUILayout.FlexibleSpace();
             return result;
@@ -149,6 +149,16 @@ namespace DREditor.Utility.Editor
                 "_MainTex"
 #endif
                 ) as Texture2D;
+        }
+
+        public static void UISplitter(Color color, int thickness = 1, int horizontalpadding = 5, int verticalpadding = 10)
+        {
+            Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(verticalpadding + thickness));
+            r.height = thickness;
+            r.y += verticalpadding / 2;
+            r.x += horizontalpadding;
+            r.width -= horizontalpadding * 2;
+            EditorGUI.DrawRect(r, color);
         }
     }
 }

@@ -16,6 +16,7 @@ namespace DREditor.Characters
         public string translationKey;
         public string LastName = "";
         public string FirstName = "";
+        [Tooltip("Currently used as a variable for Splash Arts")]
         public Texture2D DefaultSprite;
         public Texture2D TrialPortrait;
 #if UNITY_EDITOR

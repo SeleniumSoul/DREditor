@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using DREditor.EventObjects;
+using DREditor.Dialogues;
 using DREditor.Dialogues.Events;
 
 namespace DREditor.FPC
@@ -37,7 +38,7 @@ namespace DREditor.FPC
 		{
 			_characterController = GetComponent<CharacterController>();
 			_initialParentPos = transform.parent.position;
-			InDialogue.Value = false;
+			DialogueHandler.InDialog = false;
 		
 		#if ENABLE_INPUT_SYSTEM
 			_controls = new DRInput();
@@ -71,7 +72,7 @@ namespace DREditor.FPC
 
 		private void Update()
 		{
-			if (InDialogue.Value) return;
+			if (DialogueHandler.InDialog) return;
 
 		#if ENABLE_INPUT_SYSTEM
 			hVelocity = _controls._3DExplore.Move.ReadValue<Vector2>().x;

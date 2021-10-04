@@ -6,7 +6,6 @@
   "description": "Editor Tools to create games inspired by Danganronpa.\n\nModified and Maintained by SeleniumSoul",
   "dependencies": {
     "com.unity.textmeshpro": "2.0.1",
-    "com.unity.addressables": "1.8.5",
     "com.unity.inputsystem": "1.0.2"
   },
   "type": "tool"

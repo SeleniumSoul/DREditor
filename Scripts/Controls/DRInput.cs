@@ -24,7 +24,7 @@ public class @DRInput : IInputActionCollection, IDisposable
                     ""id"": ""977f6309-c173-4294-8ab0-286558e62567"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
-                    ""interactions"": ""Press""
+                    ""interactions"": """"
                 },
                 {
                     ""name"": ""Cancel"",
