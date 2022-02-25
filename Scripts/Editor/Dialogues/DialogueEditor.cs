@@ -36,8 +36,6 @@ namespace DREditor.Dialogues.Editor
 
 		private bool isMouseOnSprite;
 		private int lineToEnlarge;
-		private GUIStyle _currentHoverSprite;
-		private Rect _spriteMouseRect;
 
 		public void OnEnable()
 		{
@@ -133,6 +131,12 @@ namespace DREditor.Dialogues.Editor
 						Debug.Log(AssetDatabase.GetAssetPath(dia));
 					}
 				}
+				
+				if (dia.DialogueMode == BoxMode.Normal)
+                {
+					dia.ShowDialoguePanel = EditorGUILayout.Toggle("Show Dialogue Panel: ", dia.ShowDialoguePanel);
+				}
+
 				GUI.backgroundColor = Color.white;
 			}
 
@@ -233,7 +237,12 @@ namespace DREditor.Dialogues.Editor
 									{
 										GUILayout.Label("Voice", GUILayout.Width(35));
 
-										currentLine.VoiceSFX = EditorGUILayout.ObjectField(currentLine.VoiceSFX, typeof(AudioClip), false, GUILayout.Width(90)) as AudioClip;
+										currentLine.VoiceSFX = EditorGUILayout.ObjectField(currentLine.VoiceSFX, typeof(AudioClip), false, GUILayout.Width(65)) as AudioClip;
+
+										if (GUILayout.Button(">", GUILayout.Width(20)))
+										{
+											PublicAudioUtil.PlayClip(currentLine.VoiceSFX);
+										}
 									}
 
 									if (currentLine.SFX != null)
@@ -290,8 +299,8 @@ namespace DREditor.Dialogues.Editor
 
 									using (new EditorGUILayout.HorizontalScope())
 									{
-										GUILayout.Label("Automatic", GUILayout.Width(60));
-										currentLine.AutomaticLine = EditorGUILayout.Toggle(currentLine.AutomaticLine);
+										GUILayout.Label("Auto:", GUILayout.Width(55));
+										currentLine.AutomaticLine = EditorGUILayout.Toggle(currentLine.AutomaticLine, GUILayout.Width(15));
 										if (currentLine.AutomaticLine)
 										{
 											currentLine.TimeToNextLine = EditorGUILayout.FloatField(currentLine.TimeToNextLine, GUILayout.Width(24));
@@ -394,6 +403,7 @@ namespace DREditor.Dialogues.Editor
 										{
 											GUI.FocusControl(null);
 											dia.Lines.Remove(currentLine);
+											serializedObject.ApplyModifiedProperties();
 											serializedObject.Update();
 											return;
 										}
@@ -913,6 +923,11 @@ namespace DREditor.Dialogues.Editor
 			_neoLine.Speaker = null;
 			_neoLine.SpeakerNumber = -1;
 			_neoLine.DiaEvents = new List<IDialogueEvent>();
+			if (dia.Lines.Count <= 0)
+            {
+				_neoLine.DiaEvents.Add(new ChangeCharacterFocus());
+				_neoLine.DiaEvents.Add(new ChangeWindowPattern());
+            }
 			return _neoLine;
 		}
 

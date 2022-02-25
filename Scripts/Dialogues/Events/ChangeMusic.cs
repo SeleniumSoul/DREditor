@@ -25,7 +25,7 @@ namespace DREditor.Dialogues.Events
 
 		public void TriggerDialogueEvent()
 		{
-			DialogueEventSystem.TriggerEvent("ChangeMusic", CMValue);
+			DialogueEventSystem.TriggerEvent("PlayBGM", CMValue);
 		}
 
 		#if UNITY_EDITOR

@@ -16,11 +16,23 @@ namespace DREditor.Dialogues
 		static public bool IsWriting;
 		static public bool OnTransition;
 
+		static public bool _skip;
+		static public bool _auto;
+
 		static public Backlog BLFile;
 
 		[NonSerialized] static public Dialogue DialogueAsset;
 		[NonSerialized] static public int _dialogueLength;
 		[NonSerialized] static public int _currentLineNum;
 		[NonSerialized] static public Line _currentLine;
+
+		static public void EndDialogue()
+        {
+			InDialog = false;
+			Advance = false;
+			Skippable = false;
+			IsWriting = false;
+			OnTransition = false;
+        }
 	}
 }

@@ -23,26 +23,5 @@ namespace DREditor.Utility
             Debug.Log(method);
             method?.Invoke( null, new object[] { clip, startSample, loop } );
         }
-        //public static void PlayClip(AudioClip clip, int startSample = 0, bool loop = false)
-        //{
-        //    Assembly unityEditorAssembly = typeof(AudioImporter).Assembly;
-        //    Type audioUtilClass = unityEditorAssembly.GetType("UnityEditor.AudioUtil");
-        //    MethodInfo method = audioUtilClass.GetMethod(
-        //        "PlayClip",
-        //        BindingFlags.Static | BindingFlags.Public,
-        //        null,
-        //        new System.Type[] {
-        //        typeof(AudioClip)
-        //        },
-        //        null
-        //    );
-        //    method.Invoke(
-        //        null,
-        //        new object[] {
-        //        clip
-        //        }
-        //    );
-        //} // PlayClip()
-
-    } // class PublicAudioUtil
+    }
 }

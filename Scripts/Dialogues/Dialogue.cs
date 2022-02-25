@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using JetBrains.Annotations;
-using DREditor.Audio;
 using DREditor.Characters;
 using DREditor.Dialogues.Events;
 using DREditor.EventObjects;
 
 namespace DREditor.Dialogues
 {
-	//Identifies if the dialogue will be used normally, onCG, or in Trial. Used primarily for the game to know what type of dialogue screen to use.
+	/// <summary>
+	/// Identifies if the dialogue will be used normally, CG, or in Trial. Used primarily for the game to know what type of dialogue screen to use.
+	/// </summary>
 	public enum BoxMode
 	{
 		Normal,
@@ -24,6 +25,7 @@ namespace DREditor.Dialogues
 		public string translationKey;
 		public string DialogueName = "";
 		public Color Color = Color.white;
+		public bool ShowDialoguePanel = true;
 		public Variable Variable = new Variable();
 		public DirectTo DirectTo;
 		public SceneTransition SceneTransition = new SceneTransition();

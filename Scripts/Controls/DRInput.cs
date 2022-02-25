@@ -49,6 +49,22 @@ public class @DRInput : IInputActionCollection, IDisposable
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """"
+                },
+                {
+                    ""name"": ""Auto"",
+                    ""type"": ""Button"",
+                    ""id"": ""d3da2434-9bd9-455e-a567-bb227f91a7f2"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": ""Press""
+                },
+                {
+                    ""name"": ""Skip"",
+                    ""type"": ""PassThrough"",
+                    ""id"": ""7cb5cc81-e802-4b37-a37c-ce260583f202"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": ""Hold""
                 }
             ],
             ""bindings"": [
@@ -137,6 +153,61 @@ public class @DRInput : IInputActionCollection, IDisposable
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
                     ""action"": ""Help"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3bdab6ba-abf0-4f4a-bb89-b105f3210377"",
+                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Auto"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""12343ca3-9a7b-4a7c-903e-a8ca33eeb788"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Auto"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""107f659f-b43a-4e86-ac2e-e4015ba48e3e"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Skip"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2a5bc6a6-00bd-46f2-9cd0-8442ba796fff"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Skip"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3efc8b03-2678-4b73-b710-a13b702b3048"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Skip"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -259,7 +330,7 @@ public class @DRInput : IInputActionCollection, IDisposable
                     ""id"": ""c1f7a91b-d0fd-4a62-997e-7fb9b69bf235"",
                     ""path"": ""<Gamepad>/rightStick"",
                     ""interactions"": """",
-                    ""processors"": ""ScaleVector2(x=0.5,y=0.5)"",
+                    ""processors"": """",
                     ""groups"": "";Gamepad"",
                     ""action"": ""Look"",
                     ""isComposite"": false,
@@ -1351,6 +1422,8 @@ public class @DRInput : IInputActionCollection, IDisposable
         m_Global_Cancel = m_Global.FindAction("Cancel", throwIfNotFound: true);
         m_Global_Backlog = m_Global.FindAction("Backlog", throwIfNotFound: true);
         m_Global_Help = m_Global.FindAction("Help", throwIfNotFound: true);
+        m_Global_Auto = m_Global.FindAction("Auto", throwIfNotFound: true);
+        m_Global_Skip = m_Global.FindAction("Skip", throwIfNotFound: true);
         // 3D Explore
         m__3DExplore = asset.FindActionMap("3D Explore", throwIfNotFound: true);
         m__3DExplore_Move = m__3DExplore.FindAction("Move", throwIfNotFound: true);
@@ -1431,6 +1504,8 @@ public class @DRInput : IInputActionCollection, IDisposable
     private readonly InputAction m_Global_Cancel;
     private readonly InputAction m_Global_Backlog;
     private readonly InputAction m_Global_Help;
+    private readonly InputAction m_Global_Auto;
+    private readonly InputAction m_Global_Skip;
     public struct GlobalActions
     {
         private @DRInput m_Wrapper;
@@ -1439,6 +1514,8 @@ public class @DRInput : IInputActionCollection, IDisposable
         public InputAction @Cancel => m_Wrapper.m_Global_Cancel;
         public InputAction @Backlog => m_Wrapper.m_Global_Backlog;
         public InputAction @Help => m_Wrapper.m_Global_Help;
+        public InputAction @Auto => m_Wrapper.m_Global_Auto;
+        public InputAction @Skip => m_Wrapper.m_Global_Skip;
         public InputActionMap Get() { return m_Wrapper.m_Global; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -1460,6 +1537,12 @@ public class @DRInput : IInputActionCollection, IDisposable
                 @Help.started -= m_Wrapper.m_GlobalActionsCallbackInterface.OnHelp;
                 @Help.performed -= m_Wrapper.m_GlobalActionsCallbackInterface.OnHelp;
                 @Help.canceled -= m_Wrapper.m_GlobalActionsCallbackInterface.OnHelp;
+                @Auto.started -= m_Wrapper.m_GlobalActionsCallbackInterface.OnAuto;
+                @Auto.performed -= m_Wrapper.m_GlobalActionsCallbackInterface.OnAuto;
+                @Auto.canceled -= m_Wrapper.m_GlobalActionsCallbackInterface.OnAuto;
+                @Skip.started -= m_Wrapper.m_GlobalActionsCallbackInterface.OnSkip;
+                @Skip.performed -= m_Wrapper.m_GlobalActionsCallbackInterface.OnSkip;
+                @Skip.canceled -= m_Wrapper.m_GlobalActionsCallbackInterface.OnSkip;
             }
             m_Wrapper.m_GlobalActionsCallbackInterface = instance;
             if (instance != null)
@@ -1476,6 +1559,12 @@ public class @DRInput : IInputActionCollection, IDisposable
                 @Help.started += instance.OnHelp;
                 @Help.performed += instance.OnHelp;
                 @Help.canceled += instance.OnHelp;
+                @Auto.started += instance.OnAuto;
+                @Auto.performed += instance.OnAuto;
+                @Auto.canceled += instance.OnAuto;
+                @Skip.started += instance.OnSkip;
+                @Skip.performed += instance.OnSkip;
+                @Skip.canceled += instance.OnSkip;
             }
         }
     }
@@ -1783,6 +1872,8 @@ public class @DRInput : IInputActionCollection, IDisposable
         void OnCancel(InputAction.CallbackContext context);
         void OnBacklog(InputAction.CallbackContext context);
         void OnHelp(InputAction.CallbackContext context);
+        void OnAuto(InputAction.CallbackContext context);
+        void OnSkip(InputAction.CallbackContext context);
     }
     public interface I_3DExploreActions
     {
