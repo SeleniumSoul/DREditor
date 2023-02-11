@@ -27,5 +27,24 @@ namespace DREditor.Characters
         public Texture2D Headshot;
         public Texture2D TrialNameplate;
         public float TrialHeight = 7.88f;
+
+        /// <summary>
+        /// Returns the full name of the character.
+        /// </summary>
+        /// <param name="jp">If true, return name in Japanese (Last Name, First Name) basis.</param>
+        /// <returns></returns>
+        public string FullName(bool jp)
+        {
+            string name;
+            if (!string.IsNullOrWhiteSpace(LastName))
+            {
+                name = jp ? $"{LastName} {FirstName}" : $"{FirstName} {LastName}";
+            }
+            else
+            {
+                name = FirstName;
+            }
+            return name;
+        }
     }
 }

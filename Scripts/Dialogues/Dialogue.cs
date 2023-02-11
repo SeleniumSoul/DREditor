@@ -88,6 +88,7 @@ namespace DREditor.Dialogues
 	{
 		public List<Line> Lines = new List<Line>();
 		public List<Choice> Choices = new List<Choice>();
+		public List<IDialogueEvent> StartEvents = new List<IDialogueEvent>();
 	}
 
 	[System.Serializable]

@@ -151,7 +151,7 @@ namespace DREditor.Utility.Editor
                 ) as Texture2D;
         }
 
-        public static void UISplitter(Color color, int thickness = 1, int horizontalpadding = 5, int verticalpadding = 10)
+        public static void UISplitter(Color color, float thickness = 1, int horizontalpadding = 5, int verticalpadding = 10)
         {
             Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(verticalpadding + thickness));
             r.height = thickness;

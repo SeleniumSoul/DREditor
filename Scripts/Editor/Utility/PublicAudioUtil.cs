@@ -20,7 +20,6 @@ namespace DREditor.Utility
                 null
             );
 
-            Debug.Log(method);
             method?.Invoke( null, new object[] { clip, startSample, loop } );
         }
     }

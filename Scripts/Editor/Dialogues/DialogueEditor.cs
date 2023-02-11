@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using System.Text;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -29,11 +29,14 @@ namespace DREditor.Dialogues.Editor
 
 		SerializedProperty propLines;
 
+		private int lineEditNum = -1;
+		private List<bool> _lineEdit = new List<bool>();
+		private List<Rect> _lineEditRect = new List<Rect>();
 		private List<Type> _list;
 		private string[] choices;
 
 		private int _DiaEventIndex;
-
+		private bool _showDiaEvents;
 		private bool isMouseOnSprite;
 		private int lineToEnlarge;
 
@@ -67,7 +70,7 @@ namespace DREditor.Dialogues.Editor
 				int _assetamount = GetCharacterDatabase();
 
 				if (_assetamount != 1) return;
-            }
+			}
 
 			if (dia.Speakers.Characters == null)
 			{
@@ -133,15 +136,23 @@ namespace DREditor.Dialogues.Editor
 				}
 				
 				if (dia.DialogueMode == BoxMode.Normal)
-                {
+				{
 					dia.ShowDialoguePanel = EditorGUILayout.Toggle("Show Dialogue Panel: ", dia.ShowDialoguePanel);
 				}
 
 				GUI.backgroundColor = Color.white;
 			}
 
+			_showDiaEvents = ShowDialogueEventList(dia.StartEvents, _showDiaEvents, "Start Events");
+
 			if (dia.Lines != null)
 			{
+				foreach (Line l in dia.Lines)
+				{
+					_lineEdit.Add(false);
+					_lineEditRect.Add(new Rect());
+				}
+
 				for (int i = 0; i < dia.Lines.Count; i++)
 				{
 					Rect rect = new Rect();
@@ -167,7 +178,7 @@ namespace DREditor.Dialogues.Editor
 					}
 
 					if (currentLine.SpeakerNumber != 0)
-                    {
+					{
 						if (EditorGUIUtility.isProSkin)
 						{
 							GUI.backgroundColor = Color.white;
@@ -179,8 +190,8 @@ namespace DREditor.Dialogues.Editor
 							GUI.color = Color.white;
 						}
 					}
-                    else
-                    {
+					else
+					{
 						if (EditorGUIUtility.isProSkin)
 						{
 							GUI.color = dia.Color;
@@ -192,144 +203,20 @@ namespace DREditor.Dialogues.Editor
 						}
 					}
 
-					using (new EditorGUILayout.HorizontalScope("Box"))
+					using (new GUILayout.HorizontalScope("Box"))
 					{
 						using (new EditorGUILayout.VerticalScope())
 						{
 							//MainBox
 							using (new EditorGUILayout.HorizontalScope())
 							{
-								//Column 1
-								using (new EditorGUILayout.VerticalScope())
+                                #region Preview
+                                if (lineEditNum != i)
 								{
-									var prependedArray = ContainerUtil.PrependedList(dia.GetCharacterNames(), "<No Character>");
-									currentLine.SpeakerNumber = EditorGUILayout.IntPopup(currentLine.SpeakerNumber, prependedArray,
-										ContainerUtil.Iota(prependedArray.Length, -1), GUILayout.Width(130));
-									currentLine.Speaker = currentLine.SpeakerNumber == -1 ? null : dia.Speakers.Characters[currentLine.SpeakerNumber];
-									if (currentLine.SpeakerNumber == -1)
+									//Column 1
+									if (currentLine.Expression != null)
 									{
-										currentLine.Speaker = null;
-										currentLine.VoiceSFX = null;
-										currentLine.Expression = null;
-										currentLine.ExpressionNumber = 0;
-										currentLine.AliasNumber = 0;
-									}
-                                    else
-                                    {
-										currentLine.Speaker = dia.Speakers.Characters[currentLine.SpeakerNumber];
-									}
-
-									if (currentLine.Speaker)
-									{
-										var aliasNames = new string[currentLine.Speaker.Aliases.Count + 1];
-										aliasNames[0] = "(No Alias)";
-
-										for (int j = 1; j < currentLine.Speaker.Aliases.Count + 1; j++)
-										{
-											aliasNames[j] = currentLine.Speaker.Aliases[j - 1].Name;
-										}
-										currentLine.AliasNumber = EditorGUILayout.IntPopup(currentLine.AliasNumber,
-											aliasNames, dia.getAliasesIntValues(currentLine.Speaker),
-												GUILayout.Width(130));
-									}
-
-									using (new EditorGUILayout.HorizontalScope())
-									{
-										GUILayout.Label("Voice", GUILayout.Width(35));
-
-										currentLine.VoiceSFX = EditorGUILayout.ObjectField(currentLine.VoiceSFX, typeof(AudioClip), false, GUILayout.Width(65)) as AudioClip;
-
-										if (GUILayout.Button(">", GUILayout.Width(20)))
-										{
-											PublicAudioUtil.PlayClip(currentLine.VoiceSFX);
-										}
-									}
-
-									if (currentLine.SFX != null)
-									{
-										for (var j = 0; j < currentLine.SFX.Count; j++)
-										{
-											using (new EditorGUILayout.HorizontalScope())
-											{
-												EditorGUI.BeginDisabledGroup(currentLine.SFX[j] == null);
-
-												if (GUILayout.Button(">", GUILayout.Width(20)))
-												{
-													PublicAudioUtil.PlayClip(currentLine.SFX[j]);
-												}
-
-												EditorGUI.EndDisabledGroup();
-
-												currentLine.SFX[j] =
-													(AudioClip)EditorGUILayout.ObjectField(currentLine.SFX[j], typeof(AudioClip), false,
-														GUILayout.Width(84));
-
-												if (GUILayout.Button("x", GUILayout.Width(20)))
-												{
-													currentLine.SFX.Remove(currentLine.SFX[j]);
-												}
-											}
-										}
-									}
-
-									if (GUILayout.Button("Add Sound", GUILayout.Width(130)))
-									{
-										currentLine.SFX.Add(_sfx);
-									}
-
-									if (currentLine.Events != null)
-									{
-										for (var j = 0; j < currentLine.Events.Count; j++)
-										{
-											using (new EditorGUILayout.HorizontalScope())
-											{
-												currentLine.Events[j] = (SceneEvent)EditorGUILayout.ObjectField(currentLine.Events[j], typeof(SceneEvent), false, GUILayout.Width(100));
-												if (GUILayout.Button("x", GUILayout.Width(20)))
-												{
-													currentLine.Events.Remove(currentLine.Events[j]);
-												}
-											}
-										}
-									}
-
-									if (GUILayout.Button("Add Scene Event", GUILayout.Width(130)))
-									{
-										currentLine.Events.Add(CreateInstance<SceneEvent>());
-									}
-
-									using (new EditorGUILayout.HorizontalScope())
-									{
-										GUILayout.Label("Auto:", GUILayout.Width(55));
-										currentLine.AutomaticLine = EditorGUILayout.Toggle(currentLine.AutomaticLine, GUILayout.Width(15));
-										if (currentLine.AutomaticLine)
-										{
-											currentLine.TimeToNextLine = EditorGUILayout.FloatField(currentLine.TimeToNextLine, GUILayout.Width(24));
-											EditorGUILayout.LabelField("sec", GUILayout.Width(22));
-										}
-									}
-								}
-
-								//Column 2
-								if (currentLine.Speaker != null && !IsProtagonist(currentLine.Speaker))
-								{
-									using (new EditorGUILayout.VerticalScope("Box", GUILayout.Width(100)))
-									{
-										var exprs = currentLine.Speaker.Expressions.Count;
-
-										if (exprs < currentLine.ExpressionNumber)
-										{
-											currentLine.ExpressionNumber = 0;
-										}
-
-										var expressionNames = new string[currentLine.Speaker.Expressions.Count + 1];
-										expressionNames[0] = "<No change>";
-
-										for (int j = 1; j < currentLine.Speaker.Expressions.Count + 1; j++)
-										{
-											expressionNames[j] = currentLine.Speaker.Expressions[j - 1].Name;
-										}
-
-										if (currentLine.Expression != null)
+										using (new EditorGUILayout.VerticalScope())
 										{
 											GUIStyle expr = new GUIStyle();
 
@@ -345,235 +232,350 @@ namespace DREditor.Dialogues.Editor
 											if (EditorGUIUtility.isProSkin) GUI.color = Color.white;
 											else GUI.backgroundColor = Color.white;
 
-											rect = new Rect(EditorGUILayout.GetControlRect(GUILayout.Width(100), GUILayout.Height(100)));
+											rect = new Rect(EditorGUILayout.GetControlRect(GUILayout.Width(130), GUILayout.Height(130)));
 											EditorGUI.LabelField(rect, GUIContent.none, expr);
-
-											if (expr.normal.background != null && rect.Contains(Event.current.mousePosition))
-											{
-												isMouseOnSprite = true;
-												lineToEnlarge = i;
-											}
-											else
-											{
-												if (isMouseOnSprite != true) isMouseOnSprite = false;
-											}
 
 											if (EditorGUIUtility.isProSkin) GUI.color = color;
 											else GUI.backgroundColor = color;
 										}
+									}
 
-										currentLine.ExpressionNumber = EditorGUILayout.IntPopup(currentLine.ExpressionNumber,
-											expressionNames, dia.getExpressionIntValues(currentLine.Speaker), GUILayout.Width(100));
+									//Column 2
+									using (new EditorGUILayout.VerticalScope())
+									{
+										var propLine = propLines.GetArrayElementAtIndex(i);
+										var propLineText = propLine.FindPropertyRelative("Text");
+										StringBuilder sb = new StringBuilder();
 
-										if (currentLine.ExpressionNumber > 0)
+										if (currentLine.Speaker)
 										{
-											currentLine.Expression =
-												currentLine.Speaker.Expressions[currentLine.ExpressionNumber - 1];
+											if (currentLine.AliasNumber != 0)
+											{
+												sb.Append(currentLine.AliasNumber != 0 ? $"{currentLine.Speaker.Aliases[currentLine.AliasNumber - 1].Name} ({currentLine.Speaker.FullName(false)})" : "");
+											}
+											else
+											{
+												sb.Append(currentLine.AliasNumber != 0 ? "" : $"{currentLine.Speaker.FullName(false)}");
+											}
+
+										}
+										EditorGUILayout.LabelField(new GUIContent(string.IsNullOrWhiteSpace(sb.ToString()) ? "" : sb.ToString(), "Character Name"), GUILayout.Width(Screen.width - 220));
+										TextPreview(propLineText.stringValue, GUILayout.Width(Screen.width - 210));
+									}
+								}
+                                #endregion
+
+                                #region Editor
+                                else
+                                {
+									//Column 1
+									using (new EditorGUILayout.VerticalScope())
+									{
+										var prependedArray = ContainerUtil.PrependedList(dia.GetCharacterNames(), "<No Character>");
+										currentLine.SpeakerNumber = EditorGUILayout.IntPopup(currentLine.SpeakerNumber, prependedArray,
+											ContainerUtil.Iota(prependedArray.Length, -1), GUILayout.Width(130));
+										currentLine.Speaker = currentLine.SpeakerNumber == -1 ? null : dia.Speakers.Characters[currentLine.SpeakerNumber];
+										if (currentLine.SpeakerNumber == -1)
+										{
+											currentLine.Speaker = null;
+											currentLine.VoiceSFX = null;
+											currentLine.Expression = null;
+											currentLine.ExpressionNumber = 0;
+											currentLine.AliasNumber = 0;
 										}
 										else
 										{
-											currentLine.Expression = new Expression();
+											currentLine.Speaker = dia.Speakers.Characters[currentLine.SpeakerNumber];
+										}
+
+										if (currentLine.Speaker)
+										{
+											var aliasNames = new string[currentLine.Speaker.Aliases.Count + 1];
+											aliasNames[0] = "(No Alias)";
+
+											for (int j = 1; j < currentLine.Speaker.Aliases.Count + 1; j++)
+											{
+												aliasNames[j] = currentLine.Speaker.Aliases[j - 1].Name;
+											}
+											currentLine.AliasNumber = EditorGUILayout.IntPopup(currentLine.AliasNumber,
+												aliasNames, dia.getAliasesIntValues(currentLine.Speaker),
+													GUILayout.Width(130));
+										}
+
+										using (new EditorGUILayout.HorizontalScope())
+										{
+											GUILayout.Label("Voice", GUILayout.Width(35));
+
+											currentLine.VoiceSFX = EditorGUILayout.ObjectField(currentLine.VoiceSFX, typeof(AudioClip), false, GUILayout.Width(65)) as AudioClip;
+
+											if (GUILayout.Button(">", GUILayout.Width(20)))
+											{
+												PublicAudioUtil.PlayClip(currentLine.VoiceSFX);
+											}
+										}
+
+										if (currentLine.SFX != null)
+										{
+											for (var j = 0; j < currentLine.SFX.Count; j++)
+											{
+												using (new EditorGUILayout.HorizontalScope())
+												{
+													EditorGUI.BeginDisabledGroup(currentLine.SFX[j] == null);
+
+													if (GUILayout.Button(">", GUILayout.Width(20)))
+													{
+														PublicAudioUtil.PlayClip(currentLine.SFX[j]);
+													}
+
+													EditorGUI.EndDisabledGroup();
+
+													currentLine.SFX[j] =
+														(AudioClip)EditorGUILayout.ObjectField(currentLine.SFX[j], typeof(AudioClip), false,
+															GUILayout.Width(84));
+
+													if (GUILayout.Button("x", GUILayout.Width(20)))
+													{
+														currentLine.SFX.Remove(currentLine.SFX[j]);
+													}
+												}
+											}
+										}
+
+										if (GUILayout.Button("Add Sound", GUILayout.Width(130)))
+										{
+											currentLine.SFX.Add(_sfx);
+										}
+
+										if (currentLine.Events != null)
+										{
+											for (var j = 0; j < currentLine.Events.Count; j++)
+											{
+												using (new EditorGUILayout.HorizontalScope())
+												{
+													currentLine.Events[j] = (SceneEvent)EditorGUILayout.ObjectField(currentLine.Events[j], typeof(SceneEvent), false, GUILayout.Width(100));
+													if (GUILayout.Button("x", GUILayout.Width(20)))
+													{
+														currentLine.Events.Remove(currentLine.Events[j]);
+													}
+												}
+											}
+										}
+
+										if (GUILayout.Button("Add Scene Event", GUILayout.Width(130)))
+										{
+											currentLine.Events.Add(CreateInstance<SceneEvent>());
+										}
+
+										using (new EditorGUILayout.HorizontalScope())
+										{
+											GUILayout.Label("Auto:", GUILayout.Width(55));
+											currentLine.AutomaticLine = EditorGUILayout.Toggle(currentLine.AutomaticLine, GUILayout.Width(15));
+											if (currentLine.AutomaticLine)
+											{
+												currentLine.TimeToNextLine = EditorGUILayout.FloatField(currentLine.TimeToNextLine, GUILayout.Width(24));
+												EditorGUILayout.LabelField("sec", GUILayout.Width(22));
+											}
 										}
 									}
-								}
 
-								//Column 3
-								using (new EditorGUILayout.VerticalScope())
-								{
-									var propLine = propLines.GetArrayElementAtIndex(i);
-									var propLineText = propLine.FindPropertyRelative("Text");
+									//Column 2
 									if (currentLine.Speaker != null && !IsProtagonist(currentLine.Speaker))
 									{
-										propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 320));
-										TextPreview(propLineText.stringValue, 62f, Screen.width - 320);
-									}
-									else
-									{
-										propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 210));
-										TextPreview(propLineText.stringValue, 62f, Screen.width - 210);
-									}
-								}
-
-								//Column 4
-								using (new EditorGUILayout.VerticalScope())
-								{
-									if (dia.Lines.Count > 1)
-									{
-										if (GUILayout.Button(new GUIContent("-", "Delete this Line."), GUILayout.Width(20)) && dia.Lines.Count > 1)
+										using (new EditorGUILayout.VerticalScope("Box", GUILayout.Width(100)))
 										{
-											GUI.FocusControl(null);
-											dia.Lines.Remove(currentLine);
-											serializedObject.ApplyModifiedProperties();
-											serializedObject.Update();
-											return;
+											var exprs = currentLine.Speaker.Expressions.Count;
+
+											if (exprs < currentLine.ExpressionNumber)
+											{
+												currentLine.ExpressionNumber = 0;
+											}
+
+											var expressionNames = new string[currentLine.Speaker.Expressions.Count + 1];
+											expressionNames[0] = "<No change>";
+
+											for (int j = 1; j < currentLine.Speaker.Expressions.Count + 1; j++)
+											{
+												expressionNames[j] = currentLine.Speaker.Expressions[j - 1].Name;
+											}
+
+											if (currentLine.Expression != null)
+											{
+												GUIStyle expr = new GUIStyle();
+
+												if (currentLine.Expression.Sprite != null && currentLine.ExpressionNumber > 0)
+												{
+													var tex = HandyFields.GetMaterialTexture(currentLine.Expression.Sprite);
+													if (tex)
+													{
+														expr.normal.background = tex;
+													}
+												}
+
+												if (EditorGUIUtility.isProSkin) GUI.color = Color.white;
+												else GUI.backgroundColor = Color.white;
+
+												rect = new Rect(EditorGUILayout.GetControlRect(GUILayout.Width(100), GUILayout.Height(100)));
+												EditorGUI.LabelField(rect, GUIContent.none, expr);
+
+												if (expr.normal.background != null && rect.Contains(Event.current.mousePosition))
+												{
+													isMouseOnSprite = true;
+													lineToEnlarge = i;
+												}
+												else
+												{
+													if (isMouseOnSprite != true) isMouseOnSprite = false;
+												}
+
+												if (EditorGUIUtility.isProSkin) GUI.color = color;
+												else GUI.backgroundColor = color;
+											}
+
+											currentLine.ExpressionNumber = EditorGUILayout.IntPopup(currentLine.ExpressionNumber,
+												expressionNames, dia.getExpressionIntValues(currentLine.Speaker), GUILayout.Width(100));
+
+											if (currentLine.ExpressionNumber > 0)
+											{
+												currentLine.Expression =
+													currentLine.Speaker.Expressions[currentLine.ExpressionNumber - 1];
+											}
+											else
+											{
+												currentLine.Expression = new Expression();
+											}
 										}
 									}
-									else
+
+									//Column 3
+									using (new EditorGUILayout.VerticalScope())
 									{
-										GUILayout.Space(20f);
+										var propLine = propLines.GetArrayElementAtIndex(i);
+										var propLineText = propLine.FindPropertyRelative("Text");
+										if (currentLine.Speaker != null && !IsProtagonist(currentLine.Speaker))
+										{
+											propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 320));
+											TextPreview(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 320));
+										}
+										else
+										{
+											propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 210));
+											TextPreview(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 210));
+										}
 									}
 
-									if (i > 0)
+									//Buttons Column
+									using (new EditorGUILayout.VerticalScope())
 									{
-										if (GUILayout.Button(new GUIContent("ʌ", "Move this line up."), GUILayout.Width(20)) && i > 0)
+										if (dia.Lines.Count > 1)
 										{
+											if (GUILayout.Button(new GUIContent("-", "Delete this Line."), GUILayout.Width(20)) && dia.Lines.Count > 1)
 											{
 												GUI.FocusControl(null);
-												var line = dia.Lines[i - 1];
+												dia.Lines.Remove(currentLine);
+												serializedObject.ApplyModifiedProperties();
+												serializedObject.Update();
+												return;
+											}
+										}
+										else
+										{
+											GUILayout.Space(20f);
+										}
 
-												dia.Lines[i - 1] = dia.Lines[i];
+										if (i > 0)
+										{
+											if (GUILayout.Button(new GUIContent("ʌ", "Move this line up."), GUILayout.Width(20)) && i > 0)
+											{
+												{
+													GUI.FocusControl(null);
+													var line = dia.Lines[i - 1];
+
+													dia.Lines[i - 1] = dia.Lines[i];
+													dia.Lines[i] = line;
+												}
+											}
+										}
+										else
+										{
+											GUILayout.Space(20f);
+										}
+
+										if (i < dia.Lines.Count - 1)
+										{
+											if (GUILayout.Button(new GUIContent("v", "Move this line down."), GUILayout.Width(20)))
+											{
+												GUI.FocusControl(null);
+												var line = dia.Lines[i + 1];
+
+												dia.Lines[i + 1] = dia.Lines[i];
 												dia.Lines[i] = line;
 											}
 										}
-									}
-									else
-									{
-										GUILayout.Space(20f);
-									}
-
-									if (i < dia.Lines.Count - 1)
-									{
-										if (GUILayout.Button(new GUIContent("v", "Move this line down."), GUILayout.Width(20)))
-										{
-											GUI.FocusControl(null);
-											var line = dia.Lines[i + 1];
-
-											dia.Lines[i + 1] = dia.Lines[i];
-											dia.Lines[i] = line;
-										}
-									}
-									else
-									{
-										GUILayout.Space(20f);
-									}
-
-									GUILayout.Space(25f);
-									GUILayout.FlexibleSpace();
-
-									if (GUILayout.Button(new GUIContent("*", "Duplicate this Line below."), GUILayout.Width(20)))
-									{
-										Line Copy = new Line();
-
-										Copy.translationKey = currentLine.translationKey;
-										Copy.SpeakerNumber = currentLine.SpeakerNumber;
-										Copy.Text = currentLine.Text;
-										Copy.VoiceSFX = currentLine.VoiceSFX;
-										Copy.SFX = currentLine.SFX;
-										Copy.Events = currentLine.Events;
-										Copy.DiaEvents = new List<IDialogueEvent>();
-
-										foreach (IDialogueEvent ev in currentLine.DiaEvents)
-                                        {
-											Copy.DiaEvents.Add(ev);
-                                        }
-
-										Copy.TimeToNextLine = currentLine.TimeToNextLine;
-										Copy.AutomaticLine = currentLine.AutomaticLine;
-										Copy.Expression = currentLine.Expression;
-										Copy.ExpressionNumber = currentLine.ExpressionNumber;
-										Copy.AliasNumber = currentLine.AliasNumber;
-
-										dia.Lines.Insert(i + 1, Copy);
-										serializedObject.Update();
-									}
-
-									if (GUILayout.Button(new GUIContent("+", "Add a new Line below."), GUILayout.Width(20)))
-									{
-										dia.Lines.Insert(i + 1, NewLine());
-										serializedObject.Update();
-									}
-
-									GUILayout.FlexibleSpace();
-								}
-							}
-
-							GUILayout.Space(5f);
-
-							//DialogueEvents Extension
-							using (new EditorGUILayout.VerticalScope())
-							{
-								if (currentLine.DiaEvents != null)
-								{
-									using (new EditorGUILayout.VerticalScope("Box"))
-									{
-										int _errors = ErrorCheck(currentLine.DiaEvents);
-										GUIStyle _diastyle = new GUIStyle();
-										_diastyle.padding = new RectOffset(20, 20, 0, 0);
-
-										//Check for errors in Dialogue Events
-										if (_errors > 0)
-										{
-											currentLine.ShowDiaEvents = EditorGUILayout.BeginFoldoutHeaderGroup(currentLine.ShowDiaEvents,
-												new GUIContent($"Dialogue Events ({currentLine.DiaEvents.Count}) Errors: {_errors}",
-												"Show list of Dialogue Events to be invoked at this line."));
-										}
 										else
 										{
-											currentLine.ShowDiaEvents = EditorGUILayout.BeginFoldoutHeaderGroup(currentLine.ShowDiaEvents,
-												new GUIContent($"Dialogue Events ({currentLine.DiaEvents.Count})",
-												"Show list of Dialogue Events to be invoked at this line."));
+											GUILayout.Space(20f);
 										}
 
-										if (currentLine.ShowDiaEvents)
+										GUILayout.Space(25f);
+										GUILayout.FlexibleSpace();
+
+										if (GUILayout.Button(new GUIContent("*", "Duplicate this Line below."), GUILayout.Width(20)))
 										{
-											for (int d = 0; d < currentLine.DiaEvents.Count; d++)
+											Line Copy = new Line();
+
+											Copy.translationKey = currentLine.translationKey;
+											Copy.SpeakerNumber = currentLine.SpeakerNumber;
+											Copy.Text = currentLine.Text;
+											Copy.VoiceSFX = currentLine.VoiceSFX;
+											Copy.SFX = currentLine.SFX;
+											Copy.Events = currentLine.Events;
+											Copy.DiaEvents = new List<IDialogueEvent>();
+
+											foreach (IDialogueEvent ev in currentLine.DiaEvents)
 											{
-												EditorGUILayout.BeginHorizontal("Box");
-
-												using (new EditorGUILayout.VerticalScope())
-												{
-													if (currentLine.DiaEvents[d] != null)
-													{
-														EditorGUILayout.LabelField(currentLine.DiaEvents[d]?.GetType().Name, EditorStyles.largeLabel);
-														HandyFields.UISplitter(Color.gray);
-														currentLine.DiaEvents[d]?.EditorUI();
-														GUILayout.Space(5);
-														currentLine.DiaEvents[d]?.ShowHelpBox();
-													}
-													else
-													{
-														EditorGUILayout.HelpBox("Unsupported/Null Dialogue Event.\n" +
-														  "This may have been broken by an update. Please delete this using the - button on the right side of this error " +
-														  "and reapply your event. If still isn't fixed, post an issue on GitHub.", MessageType.Error, true);
-													}
-												}
-												using (new EditorGUILayout.VerticalScope(GUILayout.Width(20)))
-												{
-													if (GUILayout.Button(new GUIContent("-", "Delete Dialogue Event.\nWarning: this is non-recoverable. Using undo won't do a thing."), GUILayout.Width(20)))
-													{
-														currentLine.DiaEvents.Remove(currentLine.DiaEvents[d]);
-														Repaint();
-													}
-
-													if (currentLine.DiaEvents[d] != null) //Kinda sucks that I'm forced to do nested ifs here.
-													{
-														if (GUILayout.Button(new GUIContent("?", "Show Help"), GUILayout.Width(20)))
-														{
-															currentLine.DiaEvents[d].ToggleHelpBox();
-														}
-													}
-												}
-
-												EditorGUILayout.EndHorizontal();
+												Copy.DiaEvents.Add(ev);
 											}
 
-											EditorGUILayout.BeginHorizontal("Box");
-											_DiaEventIndex = EditorGUILayout.Popup(_DiaEventIndex, choices);
-											if (GUILayout.Button("Add Dialogue Event"))
-											{
-												currentLine.DiaEvents.Add((IDialogueEvent)Activator.CreateInstance(_list[_DiaEventIndex]));
-											}
-											EditorGUILayout.EndHorizontal();
+											Copy.TimeToNextLine = currentLine.TimeToNextLine;
+											Copy.AutomaticLine = currentLine.AutomaticLine;
+											Copy.Expression = currentLine.Expression;
+											Copy.ExpressionNumber = currentLine.ExpressionNumber;
+											Copy.AliasNumber = currentLine.AliasNumber;
+
+											dia.Lines.Insert(i + 1, Copy);
+											serializedObject.Update();
 										}
-										EditorGUILayout.EndFoldoutHeaderGroup();
+
+										if (GUILayout.Button(new GUIContent("+", "Add a new Line below."), GUILayout.Width(20)))
+										{
+											dia.Lines.Insert(i + 1, NewLine());
+											serializedObject.Update();
+										}
+
+										GUILayout.FlexibleSpace();
 									}
 								}
+                                #endregion
+							}
+
+							//DialogueEvents Extension
+							if (lineEditNum == i)
+							{
+								GUILayout.Space(5f);
+								currentLine.ShowDiaEvents = ShowDialogueEventList(currentLine.DiaEvents, currentLine.ShowDiaEvents);
 							}
 						}
 					}
+					_lineEditRect[i] = GUILayoutUtility.GetLastRect();
+
+					if (Event.current.type == EventType.MouseDown && _lineEditRect[i].Contains(Event.current.mousePosition))
+					{
+						lineEditNum = i;
+						Repaint();
+					}
 
 					GUI.color = Color.white;
-					HandyFields.UISplitter(dia.Color, 2, 0, 5);
+					HandyFields.UISplitter(dia.Color, 1.5f, 0, 5);
 				}
 			}
 
@@ -591,9 +593,10 @@ namespace DREditor.Dialogues.Editor
 						{
 							GUI.backgroundColor = Color.cyan;
 						}
-						dia.Choices[i].NextDialogue =
-							(Dialogue)EditorGUILayout.ObjectField(dia.Choices[i].NextDialogue, typeof(Dialogue), true,
-								GUILayout.Width(100));
+						dia.Choices[i].NextDialogue = (Dialogue)EditorGUILayout.ObjectField(dia.Choices[i].NextDialogue,
+													typeof(Dialogue),
+													true,
+													GUILayout.Width(100));
 
 						GUI.backgroundColor = dia.Color;
 						if (dia.Choices[i].NextDialogue != null)
@@ -825,27 +828,108 @@ namespace DREditor.Dialogues.Editor
 			GUILayout.Space(30);
 		}
 
-		#region Private Functions
-		private int GetCharacterDatabase()
+        #region UIMethods
+		private bool ShowDialogueEventList(List<IDialogueEvent> eventList, bool open, string title = "Dialogue Events")
         {
+			using (new EditorGUILayout.VerticalScope("Box"))
+			{
+				int _errors = ErrorCheck(eventList);
+				GUIStyle _diastyle = new GUIStyle();
+				_diastyle.padding = new RectOffset(20, 20, 0, 0);
+
+				//Check for errors in Dialogue Events
+				if (_errors > 0)
+				{
+					open = EditorGUILayout.BeginFoldoutHeaderGroup(open,
+						new GUIContent($"{title} ({eventList.Count}) Errors: {_errors}",
+						"Show list of Dialogue Events to be invoked at this line."));
+				}
+				else
+				{
+					open = EditorGUILayout.BeginFoldoutHeaderGroup(open,
+						new GUIContent($"{title} ({eventList.Count})",
+						"Show list of Dialogue Events to be invoked at this line."));
+				}
+
+				if (open)
+				{
+					for (int d = 0; d < eventList.Count; d++)
+					{
+                        if (eventList[d] != null)
+                        {
+                            EditorGUILayout.BeginHorizontal("Box");
+							using (new EditorGUILayout.VerticalScope())
+							{
+								if (eventList[d] != null)
+								{
+									EditorGUILayout.LabelField(eventList[d]?.GetType().Name, EditorStyles.largeLabel);
+									HandyFields.UISplitter(Color.gray);
+									eventList[d]?.EditorUI();
+									GUILayout.Space(5);
+									eventList[d]?.ShowHelpBox();
+								}
+								else
+								{
+									EditorGUILayout.HelpBox("Unsupported/Null Dialogue Event.\n" +
+									  "This may have been broken by an update. Please delete this using the - button on the right side of this error " +
+									  "and reapply your event. If still isn't fixed, post an issue on GitHub.", MessageType.Error, true);
+								}
+							}
+							using (new EditorGUILayout.VerticalScope(GUILayout.Width(20)))
+							{
+								if (GUILayout.Button(new GUIContent("-", "Delete Dialogue Event.\nWarning: this is non-recoverable. Using undo won't do a thing."), GUILayout.Width(20)))
+								{
+									eventList.Remove(eventList[d]);
+									Repaint();
+								}
+
+								if (eventList[d] != null) //Kinda sucks that I'm forced to do nested ifs here.
+								{
+									if (GUILayout.Button(new GUIContent("?", "Show Help"), GUILayout.Width(20)))
+									{
+										eventList[d].ToggleHelpBox();
+									}
+								}
+							}
+							EditorGUILayout.EndHorizontal();
+                        }
+                    }
+
+					EditorGUILayout.BeginHorizontal("Box");
+					_DiaEventIndex = EditorGUILayout.Popup(_DiaEventIndex, choices);
+					if (GUILayout.Button("Add Dialogue Event"))
+					{
+						eventList.Add((IDialogueEvent)Activator.CreateInstance(_list[_DiaEventIndex]));
+					}
+					EditorGUILayout.EndHorizontal();
+				}
+				EditorGUILayout.EndFoldoutHeaderGroup();
+			}
+			return open;
+		}
+        #endregion
+
+        #region Private Functions
+        private int GetCharacterDatabase()
+		{
 			string[] _databaseguids = AssetDatabase.FindAssets("t:CharacterDatabase");
 			if (_databaseguids.Length == 1)
-            {
+			{
 				string _databasepath = AssetDatabase.GUIDToAssetPath(_databaseguids[0]);
 
 				EditorGUILayout.LabelField($"Loading CharacterDatabase at {_databasepath}.");
 				dia.Speakers = AssetDatabase.LoadAssetAtPath<CharacterDatabase>(_databasepath);
 				return 1;
 			}
-            else if (_databaseguids.Length > 1)
-            {
+			else if (_databaseguids.Length > 1)
+			{
 				using (new EditorGUILayout.VerticalScope())
 				{
 					EditorGUILayout.LabelField("There are more than one CharacterDatabase Assets found in your project.");
 					EditorGUILayout.Space(10);
 					EditorGUILayout.LabelField("Here are the path of all the files:");
 					for (int i = 0; i < _databaseguids.Length; i++)
-                    {
+					{
 						string _path = AssetDatabase.GUIDToAssetPath(_databaseguids[i]);
 						EditorGUILayout.LabelField($"	• {_path}");
 					}
@@ -866,7 +950,7 @@ namespace DREditor.Dialogues.Editor
 			}
 		}
 
-        private void UpdateDiaEventList()
+		private void UpdateDiaEventList()
 		{
 			if (DialogueEventList.ListOfClasses == null)
 			{
@@ -898,8 +982,8 @@ namespace DREditor.Dialogues.Editor
 			isMouseOnSprite = false;
 		}
 
-		private void TextPreview(string text, float height, float width)
-        {
+		private void TextPreview(string text, params GUILayoutOption[] options)
+		{
 			GUIStyle style = new GUIStyle(GUI.skin.label);
 			style.richText = true;
 			style.wordWrap = true;
@@ -913,26 +997,26 @@ namespace DREditor.Dialogues.Editor
 			text = Regex.Replace(text, "<tut>", "<color=lime>");
 			text = Regex.Replace(text, "</tut>", "</color>");
 
-			if (text == "") text = "<color=magenta>INFO: This line has no text. This will be skipped, and only the Dialogue Events in this line will be invoked.\nYou can ignore this info if this is intended.</color>";
-			EditorGUILayout.LabelField(new GUIContent(text, "Text Preview with formatting"), style, GUILayout.Height(height), GUILayout.Width(width));
-        }
+			if (text == "") text = "<color=yellow>INFO: This line has no text. This will be skipped, and only the Dialogue Events in this line will be invoked.\nYou can ignore this info if this is intended.</color>";
+			EditorGUILayout.LabelField(new GUIContent(text, "Line Preview with formatting."), style, options);
+		}
 
-        private Line NewLine()
-        {
+		private Line NewLine()
+		{
 			Line _neoLine = new Line();
 			_neoLine.Speaker = null;
 			_neoLine.SpeakerNumber = -1;
 			_neoLine.DiaEvents = new List<IDialogueEvent>();
 			if (dia.Lines.Count <= 0)
-            {
+			{
 				_neoLine.DiaEvents.Add(new ChangeCharacterFocus());
 				_neoLine.DiaEvents.Add(new ChangeWindowPattern());
-            }
+			}
 			return _neoLine;
 		}
 
 		private int ErrorCheck(List<IDialogueEvent> events)
-        {
+		{
 			int _foundErrors = 0;
 			for (int d = 0; d < events.Count; d++)
 			{
@@ -940,8 +1024,6 @@ namespace DREditor.Dialogues.Editor
 			}
 			return _foundErrors;
 		}
-        #endregion
-    }
+		#endregion
+	}
 }
-
-

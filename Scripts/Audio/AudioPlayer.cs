@@ -111,7 +111,9 @@ public class AudioPlayer : MonoBehaviour
 
     private void PlayVoice(object voice)
     {
-        VoiceSource?.PlayOneShot((AudioClip)voice);
+        VoiceSource?.Stop();
+        VoiceSource.clip = (AudioClip)voice;
+        VoiceSource?.Play();
     }
 
     private void PlaySystemSFX(object sound)
