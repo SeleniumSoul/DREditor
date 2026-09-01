@@ -1,5 +1,6 @@
 ﻿//Dialogue Event script by SeleniumSoul for DREditor.
 //
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -17,29 +18,53 @@ namespace DREditor.Dialogues.Events
 		#endif
 	}
 
-    public class DiaEvent : UnityEvent<object>{ }
+	public class DialogueUnityEventBase : UnityEvent { }
+	public class DialogueUnityEventTuple : UnityEvent<object> { }
 
     static public class DialogueEventSystem
     {
-        static public Dictionary<string, DiaEvent> _eventDict = new Dictionary<string, DiaEvent>();
+        private static Dictionary<string, DialogueUnityEventBase> eventDictionary = new();
+        private static Dictionary<string, DialogueUnityEventTuple> tupleEventDictionary = new();
 
-		public static void StartListening(string eventName, UnityAction<object> listener)
+        public static void StartListening(string eventName, UnityAction listener)
+        {
+            if (eventDictionary.TryGetValue(eventName, out DialogueUnityEventBase thisEvent))
+            {
+                thisEvent.AddListener(listener);
+            }
+            else
+            {
+                thisEvent = new DialogueUnityEventBase();
+                thisEvent.AddListener(listener);
+                eventDictionary.Add(eventName, thisEvent);
+            }
+        }
+
+        public static void StartListening(string eventName, UnityAction<object> listener)
 		{
-			if (_eventDict.TryGetValue(eventName, out DiaEvent thisEvent))
+			if (tupleEventDictionary.TryGetValue(eventName, out DialogueUnityEventTuple thisEvent))
 			{
 				thisEvent.AddListener(listener);
 			}
 			else
 			{
-				thisEvent = new DiaEvent();
+				thisEvent = new DialogueUnityEventTuple();
 				thisEvent.AddListener(listener);
-                _eventDict.Add(eventName, thisEvent);
+                tupleEventDictionary.Add(eventName, thisEvent);
 			}
 		}
 
-		public static void StopListening(string eventName, UnityAction<object> listener)
+        public static void StopListening(string eventName, UnityAction listener)
+        {
+            if (eventDictionary.TryGetValue(eventName, out DialogueUnityEventBase thisEvent))
+            {
+                thisEvent.RemoveListener(listener);
+            }
+        }
+
+        public static void StopListening(string eventName, UnityAction<object> listener)
 		{
-			if (_eventDict.TryGetValue(eventName, out DiaEvent thisEvent))
+			if (tupleEventDictionary.TryGetValue(eventName, out DialogueUnityEventTuple thisEvent))
 			{
 				thisEvent.RemoveListener(listener);
 			}
@@ -47,23 +72,33 @@ namespace DREditor.Dialogues.Events
 
 		public static void TriggerEvent(string eventName)
 		{
-			if (_eventDict.TryGetValue(eventName, out DiaEvent thisEvent))
+			if (eventDictionary.TryGetValue(eventName, out DialogueUnityEventBase thisEvent))
 			{
 				Debug.Log("DREditor <color=blue>(DialogueEventSystem)</color>: Triggering " + eventName + " event.");
-				thisEvent.Invoke(null);
+				thisEvent.Invoke();
 			}
-			else
+			else if (tupleEventDictionary.TryGetValue(eventName, out DialogueUnityEventTuple tupleEvent))
 			{
-				Debug.LogWarning($"DREditor (DialogueEventSystem): Tryna trigger { eventName }, but it somehow doesn't exist.\nYou need to have to use StartListening first before you invoke the event. This is ignorable if it's intended.");
+                Debug.Log("DREditor <color=blue>(DialogueEventSystem)</color>: Triggering " + eventName + " event.");
+                tupleEvent.Invoke(null);
+            }
+            else
+			{
+				Debug.LogWarning($"DREditor (DialogueEventSystem): Tryna trigger {eventName}, but it somehow doesn't exist.\nYou need to have to use StartListening first before you invoke the event. This is ignorable if it's intended.");
 			}
 		}
 
 		public static void TriggerEvent(string eventName, object value = null)
 		{
-			if (_eventDict.TryGetValue(eventName, out DiaEvent thisEvent))
+            if (eventDictionary.TryGetValue(eventName, out DialogueUnityEventBase thisEvent))
+            {
+                Debug.Log("DREditor <color=blue>(DialogueEventSystem)</color>: Triggering " + eventName + " event.");
+                thisEvent.Invoke();
+            }
+            if (tupleEventDictionary.TryGetValue(eventName, out DialogueUnityEventTuple tupleEvent))
 			{
 				Debug.Log($"DREditor <color=blue>(DialogueEventSystem)</color>: Triggering { eventName } event.");
-				thisEvent.Invoke(value);
+				tupleEvent.Invoke(value);
 			}
 			else
 			{

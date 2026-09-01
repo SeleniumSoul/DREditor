@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace DREditor.Dialogues
 {
-    [System.Serializable]
+    [Serializable]
     public class LocalizedDialogue : ScriptableObject
     {
         public string translationKey;
@@ -25,7 +26,7 @@ namespace DREditor.Dialogues
 
     }
 
-    [System.Serializable]
+    [Serializable]
     public class LocalizedDialogueLine
     {
         public string translationKey;

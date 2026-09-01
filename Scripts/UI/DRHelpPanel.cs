@@ -3,20 +3,17 @@
 
 using UnityEngine;
 using UnityEngine.UI;
-using DREditor.EventObjects;
 using TMPro;
+using UnityEngine.InputSystem;
 
 public class DRHelpPanel : MonoBehaviour
 {
-    public DRInput _controls;
-
     public enum GameplayState
     {
         Explore3D, Explore2_5D, Conversation, Trial
     }
     public float _speed = 10;
 
-    public BoolWithEvent InDialog, InMenu;
     public ScrollRect System;
     public GameplayState GState;
 
@@ -29,17 +26,18 @@ public class DRHelpPanel : MonoBehaviour
     private bool PanelTab = false;
     private Animator Panel;
 
+    private InputAction tabAction;
+
     private void Awake()
     {
         Panel = GetComponent<Animator>();
-        _controls = new DRInput();
+        tabAction = InputSystem.actions.FindAction("ChangeTab");
 
-        gameObject.GetComponentInParent<UIMenuSubmanager>().HelpUI = gameObject;
         gameObject.SetActive(false);
 
-        _controls.UI.ChangeHelpTab.performed += ctx =>
+        tabAction.performed += ctx =>
         {
-            switch (_controls.UI.ChangeHelpTab.ReadValue<float>())
+            switch (ctx.ReadValue<float>())
             {
                 case -1:
                     OnChangeTabLeft();
@@ -53,22 +51,20 @@ public class DRHelpPanel : MonoBehaviour
 
     void OnEnable()
     {
-        _controls.Enable();
-
-        if (InDialog.Value)
-        {
-            GState = GameplayState.Conversation;
-            MainText.text = "Explore (Conversation)";
-            System.content = SystemTexts[1];
-            TextEnable(1);
-        }
-        else
-        {
-            GState = GameplayState.Explore3D;
-            MainText.text = "Explore (3D)";
-            System.content = SystemTexts[0];
-            TextEnable(0);
-        }
+        //if (InDialog.Value)
+        //{
+        //    GState = GameplayState.Conversation;
+        //    MainText.text = "Explore (Conversation)";
+        //    System.content = SystemTexts[1];
+        //    TextEnable(1);
+        //}
+        //else
+        //{
+        //    GState = GameplayState.Explore3D;
+        //    MainText.text = "Explore (3D)";
+        //    System.content = SystemTexts[0];
+        //    TextEnable(0);
+        //}
     }
 
     void TextEnable(int GStateIndex)
@@ -118,8 +114,6 @@ public class DRHelpPanel : MonoBehaviour
 
     void OnDisable()
     {
-        _controls.Disable();
-
         Panel.ResetTrigger("ControlPanel");
         Panel.ResetTrigger("SystemPanel");
         PanelTab = false;

@@ -8,7 +8,6 @@ using UnityEditor;
 using DREditor.Characters;
 using DREditor.Utility;
 using DREditor.Utility.Editor;
-using DREditor.EventObjects;
 using DREditor.Dialogues.Events;
 
 namespace DREditor.Dialogues.Editor
@@ -50,18 +49,18 @@ namespace DREditor.Dialogues.Editor
 
 		public override void OnInspectorGUI()
 		{
-			serializedObject.Update();
-			CreateForm();
+            EditorUtility.SetDirty(dia);
+            serializedObject.Update();
+
+            CreateForm();
 
 			if (isMouseOnSprite)
 			{
 				ShowEnlargedSprite(lineToEnlarge, 1000f, 400f);
 				isMouseOnSprite = false;
 			}
-
-			EditorUtility.SetDirty(dia);
-			serializedObject.ApplyModifiedProperties();
-		}
+            serializedObject.ApplyModifiedProperties();
+        }
 
 		void CreateForm()
 		{
@@ -346,26 +345,6 @@ namespace DREditor.Dialogues.Editor
 											currentLine.SFX.Add(_sfx);
 										}
 
-										if (currentLine.Events != null)
-										{
-											for (var j = 0; j < currentLine.Events.Count; j++)
-											{
-												using (new EditorGUILayout.HorizontalScope())
-												{
-													currentLine.Events[j] = (SceneEvent)EditorGUILayout.ObjectField(currentLine.Events[j], typeof(SceneEvent), false, GUILayout.Width(100));
-													if (GUILayout.Button("x", GUILayout.Width(20)))
-													{
-														currentLine.Events.Remove(currentLine.Events[j]);
-													}
-												}
-											}
-										}
-
-										if (GUILayout.Button("Add Scene Event", GUILayout.Width(130)))
-										{
-											currentLine.Events.Add(CreateInstance<SceneEvent>());
-										}
-
 										using (new EditorGUILayout.HorizontalScope())
 										{
 											GUILayout.Label("Auto:", GUILayout.Width(55));
@@ -451,6 +430,7 @@ namespace DREditor.Dialogues.Editor
 									{
 										var propLine = propLines.GetArrayElementAtIndex(i);
 										var propLineText = propLine.FindPropertyRelative("Text");
+
 										if (currentLine.Speaker != null && !IsProtagonist(currentLine.Speaker))
 										{
 											propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 320));
@@ -461,7 +441,13 @@ namespace DREditor.Dialogues.Editor
 											propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 210));
 											TextPreview(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 210));
 										}
-									}
+
+                                        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+                                        {
+                                            GUI.FocusControl(null);
+                                            Event.current.Use();
+                                        }
+                                    }
 
 									//Buttons Column
 									using (new EditorGUILayout.VerticalScope())
@@ -528,7 +514,6 @@ namespace DREditor.Dialogues.Editor
 											Copy.Text = currentLine.Text;
 											Copy.VoiceSFX = currentLine.VoiceSFX;
 											Copy.SFX = currentLine.SFX;
-											Copy.Events = currentLine.Events;
 											Copy.DiaEvents = new List<IDialogueEvent>();
 
 											foreach (IDialogueEvent ev in currentLine.DiaEvents)
@@ -626,88 +611,6 @@ namespace DREditor.Dialogues.Editor
 					if (GUILayout.Button("Remove Choices", GUILayout.Width(130)))
 					{
 						dia.Choices.Clear();
-					}
-				}
-			}
-
-			if (dia.Variable.Enabled)
-			{
-				using (new EditorGUILayout.VerticalScope("Box", GUILayout.Width(400)))
-				{
-					using (new EditorGUILayout.HorizontalScope())
-					{
-						GUI.backgroundColor = dia.Color;
-						EditorGUILayout.LabelField("If ", GUILayout.Width(80));
-
-						dia.Variable.BoolVariable =
-							(BoolWithEvent)EditorGUILayout.ObjectField(dia.Variable.BoolVariable, typeof(BoolWithEvent), false, GUILayout.Width(200));
-					}
-					using (new EditorGUILayout.HorizontalScope())
-					{
-						EditorGUILayout.LabelField("True: ", GUILayout.Width(80));
-
-						if (dia.Variable.NextDialogueTrue == null)
-						{
-							GUI.backgroundColor = Color.cyan;
-						}
-						dia.Variable.NextDialogueTrue = (Dialogue)EditorGUILayout.ObjectField(dia.Variable.NextDialogueTrue, typeof(Dialogue), false, GUILayout.Width(200));
-
-						GUI.backgroundColor = dia.Color;
-
-						if (dia.Variable.NextDialogueTrue != null)
-						{
-							string[] nextDialogueTextsTrue = new string[dia.Variable.NextDialogueTrue.Lines.Count];
-							int[] optValues2 = new int[dia.Variable.NextDialogueTrue.Lines.Count];
-
-							for (int j = 0; j < dia.Variable.NextDialogueTrue.Lines.Count; j++)
-							{
-								nextDialogueTextsTrue[j] = dia.Variable.NextDialogueTrue.Lines[j].Text;
-								optValues2[j] = value;
-								value++;
-							}
-							dia.Variable.NextIndexInDialogueTrue = EditorGUILayout.IntPopup(
-								dia.Variable.NextIndexInDialogueTrue, nextDialogueTextsTrue, optValues2, GUILayout.Width(100));
-						}
-					}
-					value = 0;
-
-					using (new EditorGUILayout.HorizontalScope())
-					{
-						EditorGUILayout.LabelField("False: ", GUILayout.Width(80));
-
-						if (dia.Variable.NextDialogueFalse == null)
-						{
-							GUI.backgroundColor = Color.cyan;
-						}
-
-						dia.Variable.NextDialogueFalse = (Dialogue)EditorGUILayout.ObjectField(dia.Variable.NextDialogueFalse, typeof(Dialogue), false, GUILayout.Width(200));
-
-						GUI.backgroundColor = dia.Color;
-
-						if (dia.Variable.NextDialogueFalse != null)
-						{
-							string[] nextDialogueTextsFalse = new string[dia.Variable.NextDialogueFalse.Lines.Count];
-							int[] optValues3 = new int[dia.Variable.NextDialogueFalse.Lines.Count];
-
-							for (int j = 0; j < dia.Variable.NextDialogueFalse.Lines.Count; j++)
-							{
-								nextDialogueTextsFalse[j] = dia.Variable.NextDialogueFalse.Lines[j].Text;
-								optValues3[j] = value;
-								value++;
-							}
-
-							dia.Variable.NextIndexInDialogueFalse = EditorGUILayout.IntPopup(
-								dia.Variable.NextIndexInDialogueFalse, nextDialogueTextsFalse, optValues3, GUILayout.Width(100));
-						}
-					}
-					value = 0;
-
-					GUI.backgroundColor = dia.Color;
-
-					if (GUILayout.Button("Remove Condition", GUILayout.Width(130)))
-					{
-						dia.Variable.BoolVariable = null;
-						dia.Variable.Enabled = false;
 					}
 				}
 			}
@@ -907,6 +810,87 @@ namespace DREditor.Dialogues.Editor
 			}
 			return open;
 		}
+
+   //     private bool ShowDialogueEventList(SerializedProperty eventList, bool open, string title = "Dialogue Events")
+   //     {
+			//var elist = (List<IDialogueEvent>)eventList.managedReferenceValue;
+
+   //         using (new EditorGUILayout.VerticalScope("Box"))
+   //         {
+   //             //int _errors = ErrorCheck(eventList);
+   //             GUIStyle _diastyle = new GUIStyle();
+   //             _diastyle.padding = new RectOffset(20, 20, 0, 0);
+
+   //             //Check for errors in Dialogue Events
+   //             if (_errors > 0)
+   //             {
+   //                 open = EditorGUILayout.BeginFoldoutHeaderGroup(open,
+   //                     new GUIContent($"{title} ({eventList.Count})",
+   //                     "Show list of Dialogue Events to be invoked at this line."));
+   //             }
+   //             else
+   //             {
+   //                 open = EditorGUILayout.BeginFoldoutHeaderGroup(open,
+   //                     new GUIContent($"{title} ({eventList.Count})",
+   //                     "Show list of Dialogue Events to be invoked at this line."));
+   //             }
+
+   //             if (open)
+   //             {
+   //                 for (int d = 0; d < eventList.Count; d++)
+   //                 {
+   //                     if (eventList[d] != null)
+   //                     {
+   //                         EditorGUILayout.BeginHorizontal("Box");
+   //                         using (new EditorGUILayout.VerticalScope())
+   //                         {
+   //                             if (eventList[d] != null)
+   //                             {
+   //                                 EditorGUILayout.LabelField(eventList[d]?.GetType().Name, EditorStyles.largeLabel);
+   //                                 HandyFields.UISplitter(Color.gray);
+   //                                 eventList[d]?.EditorUI();
+   //                                 GUILayout.Space(5);
+   //                                 eventList[d]?.ShowHelpBox();
+   //                             }
+   //                             else
+   //                             {
+   //                                 EditorGUILayout.HelpBox("Unsupported/Null Dialogue Event.\n" +
+   //                                   "This may have been broken by an update. Please delete this using the - button on the right side of this error " +
+   //                                   "and reapply your event. If still isn't fixed, post an issue on GitHub.", MessageType.Error, true);
+   //                             }
+   //                         }
+   //                         using (new EditorGUILayout.VerticalScope(GUILayout.Width(20)))
+   //                         {
+   //                             if (GUILayout.Button(new GUIContent("-", "Delete Dialogue Event.\nWarning: this is non-recoverable. Using undo won't do a thing."), GUILayout.Width(20)))
+   //                             {
+   //                                 eventList.Remove(eventList[d]);
+   //                                 Repaint();
+   //                             }
+
+   //                             if (eventList[d] != null) //Kinda sucks that I'm forced to do nested ifs here.
+   //                             {
+   //                                 if (GUILayout.Button(new GUIContent("?", "Show Help"), GUILayout.Width(20)))
+   //                                 {
+   //                                     eventList[d].ToggleHelpBox();
+   //                                 }
+   //                             }
+   //                         }
+   //                         EditorGUILayout.EndHorizontal();
+   //                     }
+   //                 }
+
+   //                 EditorGUILayout.BeginHorizontal("Box");
+   //                 _DiaEventIndex = EditorGUILayout.Popup(_DiaEventIndex, choices);
+   //                 if (GUILayout.Button("Add Dialogue Event"))
+   //                 {
+   //                     eventList.Add((IDialogueEvent)Activator.CreateInstance(_list[_DiaEventIndex]));
+   //                 }
+   //                 EditorGUILayout.EndHorizontal();
+   //             }
+   //             EditorGUILayout.EndFoldoutHeaderGroup();
+   //         }
+   //         return open;
+   //     }
         #endregion
 
         #region Private Functions

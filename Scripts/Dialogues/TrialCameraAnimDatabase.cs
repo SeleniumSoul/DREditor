@@ -8,7 +8,6 @@ using UnityEngine;
 
 namespace DREditor.Dialogues
 {
-    [System.Serializable]
     [CreateAssetMenu(menuName = "DREditor/CameraAnim/CameraAnim Database", fileName = "CameraAnimDatabase")]
     public class TrialCameraAnimDatabase : ScriptableObject
     {

@@ -105,7 +105,7 @@ namespace DREditor.Toolbox
                     double startTime = EditorApplication.timeSinceStartup;
                     long totalBytes = new FileInfo(path).Length;
                     long bytesRead = 0;
-                    using (StreamReader reader = new StreamReader(path, System.Text.Encoding.UTF8))
+                    using (StreamReader reader = new StreamReader(path, Encoding.UTF8))
                     {
                         
                         Dialogue currentDialogue = CreateInstance<Dialogue>();

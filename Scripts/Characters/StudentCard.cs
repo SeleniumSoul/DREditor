@@ -1,8 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace DREditor.Characters
 {
-    [System.Serializable]
+    [Serializable]
     public class StudentCard
     {
         public string Talent;

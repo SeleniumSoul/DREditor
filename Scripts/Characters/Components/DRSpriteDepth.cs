@@ -5,64 +5,44 @@ using UnityEngine;
 
 public class DRSpriteDepth : MonoBehaviour
 {
-    public GameObject Shadow;
-    public GameObject[] Shadows;
-    public int Depth;
+    [Header("Properties")]
+    [SerializeField] private int Depth;
+    [SerializeField] private float DepthDistance = 0.001f;
+    [Header("Assets")]
+    [SerializeField] private Mesh DepthMesh;
+    [SerializeField] private Material DepthMaterial;
 
-    public GameObject Parent;
-    public Material CharShadow;
+    private bool ShowDepth = true;
+    private GameObject[] ShadowObjects;
+    private Matrix4x4[] depthMatrices;
 
-    void Start()
-    {
-        if (!Shadow)
-        {
-            Shadow = transform.GetChild(0).gameObject;
-        }
-
-        Parent = transform.parent.gameObject;
-        CharShadow = Shadow.GetComponent<Renderer>().material;
-        Shadows = new GameObject[Depth];
-        Shadows[0] = Shadow;
-
-        for (int x = 1; x < Depth; x++)
-        {
-            GameObject _duplicatesprite = Instantiate(Shadows[0]);
-            _duplicatesprite.transform.SetParent(Shadows[0].transform.parent);
-            _duplicatesprite.transform.localScale = Shadows[0].transform.localScale;
-            _duplicatesprite.transform.localPosition = Shadows[x-1].transform.localPosition + new Vector3(0f, 0f, -0.001f);
-            _duplicatesprite.transform.localRotation = Shadows[0].transform.localRotation;
-            _duplicatesprite.name = "Shadow" + x;
-
-            Shadows[x] = _duplicatesprite;
-        }
-    }
+    void Start() => UpdateMat(GetComponent<Renderer>().material);
 
     void Update()
     {
-        //if (CharShadow.mainTexture != ParentTex.mainTexture)
-            //CharShadow.mainTexture = ParentTex.mainTexture;
+        if (DepthMesh == null || DepthMaterial == null || !ShowDepth) return;
+
+        depthMatrices = new Matrix4x4[Depth];
+
+        for (int matriceInt = 0; matriceInt < Depth; matriceInt++)
+        {
+            Vector3 _pos = transform.position - transform.forward * ((matriceInt + 1) *  DepthDistance);
+            Quaternion _rotation = transform.rotation;
+            Vector3 _scale = transform.localScale;
+
+            depthMatrices[matriceInt] = Matrix4x4.TRS(_pos, _rotation, _scale);
+        }
+
+        Graphics.DrawMeshInstanced(DepthMesh, 0, DepthMaterial, depthMatrices, depthMatrices.Length, null, UnityEngine.Rendering.ShadowCastingMode.Off, false, gameObject.layer);
     }
 
     public void UpdateMat(Material face)
     {
-        CharShadow.mainTexture = face.mainTexture;
+        DepthMaterial.mainTexture = face.mainTexture;
     }
 
     public void HideShadow(bool toggle)
     {
-        if (toggle)
-        {
-            foreach (GameObject go in Shadows)
-            {
-                go.gameObject.layer = 11;
-            }
-        }
-        else
-        {
-            foreach (GameObject go in Shadows)
-            {
-                go.gameObject.layer = 15;
-            }
-        }
+        ShowDepth = toggle;
     }
 }

@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace DREditor.Characters
 {
-    [System.Serializable]
+    [Serializable]
     public class LocalizedStudentCard 
     {
         public Student originalStudent;

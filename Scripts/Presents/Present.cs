@@ -4,13 +4,14 @@
  */
 
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 using DRStudent = DREditor.Characters.Student;
 
 namespace DREditor.Presents
 {
-    [System.Serializable]
+    [Serializable]
     public enum PresentReactionLevel
     {
         Love,
@@ -19,14 +20,14 @@ namespace DREditor.Presents
         Dislike
     }
 
-    [System.Serializable]
+    [Serializable]
     public class StudentReactions
     {
         public DRStudent character;
         public PresentReactionLevel reactionLevel;
     }
 
-    [System.Serializable]
+    [Serializable]
     [CreateAssetMenu(menuName = "DREditor/Presents/Present", fileName = "Present")]
     public class Present : ScriptableObject
     {

@@ -4,64 +4,47 @@ using System.Collections;
 using UnityEngine;
 using DREditor.Dialogues.Events;
 using DREditor.Audio;
+using System;
 
 public class AudioPlayer : MonoBehaviour
 {
+    public static AudioPlayer current;
+
+    public Action<string> MusicChanged;
+
     [SerializeField] [Range(0f, 1f)] private float BGMVolume;
+    [SerializeField] private Playlist playlist;
+
+    [Header("Sources")]
     [SerializeField] private AudioSource BGMSource;
     [SerializeField] private AudioSource VoiceSource;
     [SerializeField] private AudioSource SFXSource;
     [SerializeField] private AudioSource SystemSource;
-    [SerializeField] private DRAudioVisualizer Visualizer;
-    [SerializeField] private Playlist playlist;
-    [SerializeField] private int currentBGMNum;
 
-    private void Start()
+    private int currentBGMNum;
+    public AudioSource MusicSource { get { return BGMSource; } }
+
+    private void Awake()
     {
-        DialogueEventSystem.StartListening("ChangeMusic", PlayBGM);
-        if (!Visualizer) Visualizer = GameObject.Find("[UI]MusicVisualizer").GetComponent<DRAudioVisualizer>();
+        if (current != null) Destroy(this);
+        else current = this;
 
-        if (!BGMSource.isPlaying)
-        {
-            ToggleVisualizer(false);
-        }
+        DialogueEventSystem.StartListening("PlayBGM", OnPlayBGM);
+        DialogueEventSystem.StartListening("PlayVoice", OnPlayVoice);
+        DialogueEventSystem.StartListening("PlaySFX", OnPlaySFX);
+        DialogueEventSystem.StartListening("PlaySystemSFX", OnPlaySystemSFX);
     }
 
-    private void OnEnable()
+    private void OnDestroy()
     {
-        DialogueEventSystem.StartListening("PlayBGM", PlayBGM);
-        DialogueEventSystem.StartListening("PlayVoice", PlayVoice);
-        DialogueEventSystem.StartListening("PlaySFX", PlaySFX);
-        DialogueEventSystem.StartListening("PlaySystemSFX", PlaySystemSFX);
+        if (current == this) current = null;
+        DialogueEventSystem.StopListening("PlayBGM", OnPlayBGM);
+        DialogueEventSystem.StopListening("PlayVoice", OnPlayVoice);
+        DialogueEventSystem.StopListening("PlaySFX", OnPlaySFX);
+        DialogueEventSystem.StopListening("PlaySystemSFX", OnPlaySystemSFX);
     }
 
-    private void OnDisable()
-    {
-        DialogueEventSystem.StopListening("PlayBGM", PlayBGM);
-        DialogueEventSystem.StopListening("PlayVoice", PlayVoice);
-        DialogueEventSystem.StopListening("PlaySFX", PlaySFX);
-        DialogueEventSystem.StopListening("PlaySystemSFX", PlaySystemSFX);
-    }
-
-    /// <summary>
-    /// Will be removed.
-    /// </summary>
-    private void Update()
-    {
-        //Debug.Log("BGM Time: " + BGMSource.time + " | TimeSamples: " + BGMSource.timeSamples);
-
-        if (Input.GetKeyDown("p"))
-        {
-            BGMSource.time += 5f;
-        }
-
-        if (Input.GetKeyDown("o"))
-        {
-            BGMSource.time -= 5f;
-        }
-    }
-
-    private void PlayBGM(object BGMnum)
+    private void OnPlayBGM(object BGMnum)
     {
         int _num;
         float _fadeout = 0f;
@@ -78,7 +61,7 @@ public class AudioPlayer : MonoBehaviour
 
         if ((_num + 1) == 0)
         {
-            ToggleVisualizer(false);
+            //ToggleVisualizer(false);
             if (_fadeout > 0f)
             {
                 StartCoroutine(FadeOutLerp(_fadeout));
@@ -91,47 +74,31 @@ public class AudioPlayer : MonoBehaviour
         else if ((_num + 1) != currentBGMNum)
         {
             BGMSource.volume = BGMVolume;
-            if (!Visualizer.gameObject.activeSelf)
-            {
-                ToggleVisualizer(true);
-            }
 
             BGMSource.clip = playlist.Musics[_num].BGM;
             BGMSource.Play();
-            if (Visualizer) Visualizer.ChangeBGMName(playlist.Musics[_num].Title);
+
+            MusicChanged?.Invoke(playlist.Musics[_num].Title);
         }
 
         currentBGMNum = _num + 1;
     }
 
-    private void PlaySFX(object sound)
+    private void OnPlaySFX(object sound)
     {
         SFXSource?.PlayOneShot((AudioClip)sound);
     }
 
-    private void PlayVoice(object voice)
+    private void OnPlayVoice(object voice)
     {
         VoiceSource?.Stop();
         VoiceSource.clip = (AudioClip)voice;
         VoiceSource?.Play();
     }
 
-    private void PlaySystemSFX(object sound)
+    private void OnPlaySystemSFX(object sound)
     {
         SystemSource?.PlayOneShot((AudioClip)sound);
-    }
-
-    private void ToggleVisualizer(bool toggle)
-    {
-        if (toggle)
-        {
-            Visualizer.gameObject.SetActive(true);
-        }
-        else
-        {
-            //Play animation here
-            Visualizer.gameObject.SetActive(false);
-        }
     }
 
     private IEnumerator FadeOutLerp(float _fadeTime)

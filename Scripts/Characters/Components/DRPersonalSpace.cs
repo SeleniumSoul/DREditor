@@ -6,30 +6,27 @@ using UnityEngine;
 [RequireComponent(typeof(SphereCollider))]
 public class DRPersonalSpace : MonoBehaviour
 {
-    public float SocialDistance = 2.5f;
-    private GameObject _parent;
-    private DRSpriteDepth _childshadow;
-    private SphereCollider _collider;
+    [SerializeField] private float SocialDistance = 2.5f;
+    
+    private DRSpriteDepth childShadow;
+    private SphereCollider sphereCollider;
     
     void Start()
     {
-        _collider = GetComponent<SphereCollider>();
-        _parent = transform.parent.gameObject;
-        _childshadow = GetComponent<DRSpriteDepth>();
+        sphereCollider = GetComponent<SphereCollider>();
+        childShadow = GetComponent<DRSpriteDepth>();
 
-        _collider.isTrigger = true;
-        _collider.radius = SocialDistance;
+        sphereCollider.isTrigger = true;
+        sphereCollider.radius = SocialDistance;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        _parent.layer = 11;
-        _childshadow.HideShadow(true);
+        childShadow.HideShadow(true);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        _parent.layer = 10;
-        _childshadow.HideShadow(false);
+        childShadow.HideShadow(false);
     }
 }

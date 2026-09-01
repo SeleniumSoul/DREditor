@@ -52,7 +52,7 @@ namespace DREditor.Characters.Editor
             EditorGUILayout.BeginVertical("Box");
             //hms.LastName = StringField("Last Name: ", hms.LastName);
             hms.FirstName = StringField("Name: ", hms.FirstName);
-            hms.Nameplate = TextureFieldLabeledHorizontal("Default Nameplate: ", hms.Nameplate);
+            hms.Nameplate = SpriteFieldLabeledHorizontal("Default Nameplate: ", hms.Nameplate);
             hms.Headshot = TextureFieldLabeledHorizontal("Default Headshot: ", hms.Headshot);
             hms.TrialNameplate = TextureFieldLabeledHorizontal("Trial Nameplate: ", hms.TrialNameplate);
             hms.TrialHeight = HandyFields.FloatField("Trial Height: ", hms.TrialHeight);
@@ -180,6 +180,20 @@ namespace DREditor.Characters.Editor
             using (new EditorGUILayout.HorizontalScope())
             {
                 result = HandyFields.UnityField(texture, 70, 70);
+            }
+            return result;
+        }
+
+        private static Sprite SpriteFieldLabeledHorizontal(string label, Sprite texture, int width = 70, int height = 70)
+        {
+            Sprite result;
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(label);
+            }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                result = HandyFields.UnityField(texture, width, height);
             }
             return result;
         }

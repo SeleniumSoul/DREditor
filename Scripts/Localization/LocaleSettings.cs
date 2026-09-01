@@ -1,10 +1,9 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace DREditor.Localization
 {
-    [System.Serializable]
     [CreateAssetMenu(menuName = "DREditor/Localization/Locale Settings", fileName = "LocaleSettings")]
     public class LocaleSettings : ScriptableObject
     {

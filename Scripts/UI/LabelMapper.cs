@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,7 +8,7 @@ using DREditor.Localization;
 
 namespace DREditor.UI
 {
-    [System.Serializable]
+    [Serializable]
     public class LabelAndText
     {
         public TMP_Text label;

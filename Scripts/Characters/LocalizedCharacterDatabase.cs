@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace DREditor.Characters
 {
-    [System.Serializable]
     public class LocalizedCharacterDatabase : ScriptableObject 
     {
         public List<LocalizedCharacter> Characters;

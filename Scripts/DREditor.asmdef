@@ -1,9 +1,12 @@
 {
     "name": "DREditor",
-    "rootNamespace": "",
+    "rootNamespace": "DREditor",
     "references": [
         "Unity.TextMeshPro",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

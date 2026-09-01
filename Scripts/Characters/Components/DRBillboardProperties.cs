@@ -4,9 +4,14 @@ using DREditor.Dialogues;
 
 public class DRBillboardProperties : MonoBehaviour
 {
-    [SerializeField] public Vector3 CameraFocusPosition;
-    public int DialogCounter = 0;
-    [SerializeField] public List<Dialogue> DialogThread = new List<Dialogue>();
+    public int ClusterID;
+    [SerializeField] private Vector3 CameraFocusPosition;
+    [SerializeField] private List<Dialogue> DialogThread = new List<Dialogue>();
+
+    private int DialogCounter = 0;
+
+    public Vector3 CameraPosition { get { return CameraFocusPosition; } }
+    public List<Dialogue> DialogThreadList { get { return DialogThread; } }
     public Dialogue DialogThreadPass()
     {
         if (DialogCounter < DialogThread.Count - 1) {
@@ -21,6 +26,14 @@ public class DRBillboardProperties : MonoBehaviour
         else
         {
             return DialogThread[DialogCounter];
+        }
+    }
+
+    public void AddThreads(Dialogue[] threads)
+    {
+        foreach (Dialogue thread in threads)
+        {
+            DialogThread.Add(thread);
         }
     }
 }

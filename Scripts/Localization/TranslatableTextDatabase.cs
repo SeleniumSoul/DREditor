@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace DREditor.Localization
 {
-    [System.Serializable]
+    [Serializable]
     [CreateAssetMenu(menuName = "DREditor/Localization/Translatables Database", fileName = "TranslatablesDatabase")]
     public class TranslatableTextDatabase : ScriptableObject
     {
@@ -57,7 +58,7 @@ namespace DREditor.Localization
         }
     }
 
-    [System.Serializable]
+    [Serializable]
     public class TranslatableText
     {
         public TranslatableText original;

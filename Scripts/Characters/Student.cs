@@ -1,8 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace DREditor.Characters
 {
-    [System.Serializable]
+    [Serializable]
     [CreateAssetMenu(menuName = "DREditor/Characters/Student", fileName = "New Student")]
     public class Student : Character
     {

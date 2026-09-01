@@ -3,7 +3,6 @@
 using UnityEngine;
 using UnityEditor;
 
-using DREditor.EventObjects;
 using DREditor.Characters;
 using DREditor.Utility;
 using DREditor.Utility.Editor;
@@ -210,7 +209,6 @@ namespace DREditor.Dialogues.Editor
                 GUI.backgroundColor = dia.Color;
                 EditSpeaker(currLine);
                 EditSFX(currLine);
-                EditEvents(currLine);
                 EditCamVFX(currLine);
                 EditCamAnim(currLine);
                 EditAutomatic(currLine);
@@ -238,30 +236,6 @@ namespace DREditor.Dialogues.Editor
             }
         }
 
-        private void EditEvents(TrialLine currLine)
-        {
-            if (currLine.Events != null)
-            {
-                for (var j = 0; j < currLine.Events.Count; j++)
-                {
-                    var ev = currLine.Events[j];
-                    using (new EditorGUILayout.HorizontalScope())
-                    {
-                        currLine.Events[j] = HandyFields.UnityField(ev, 120);
-
-                        if (GUILayout.Button("x", GUILayout.Width(20)))
-                        {
-                            currLine.Events.Remove(ev);
-                        }
-                    }
-                }
-            }
-
-            if (GUILayout.Button("Add Event"))
-            {
-                currLine.Events.Add(CreateInstance<SceneEvent>());
-            }
-        }
         private void EditCamVFX(TrialLine currLine)
         {
             using (new EditorGUILayout.HorizontalScope())

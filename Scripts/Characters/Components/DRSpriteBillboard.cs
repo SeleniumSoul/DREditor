@@ -1,78 +1,106 @@
 ﻿using System.Collections;
 using UnityEngine;
-
+using DREditor;
 using DREditor.Dialogues;
 using DREditor.Dialogues.Events;
 
 public class DRSpriteBillboard : MonoBehaviour
 {
-	public Color AmbientLight = Color.gray;
-	public DRSpriteDepth CharShadow;
+	[SerializeField] private string characterName;
+	[SerializeField] private bool UseAmbientLight;
+	[SerializeField] private Color AmbientLight = Color.gray;
 
 	private bool PnCMode;
-	private GameObject MainCamera;
-	private Renderer CharTex;
-	public Material CharacterSprite;
+	private Transform MainCamera;
+	private Renderer CharRenderer;
+    private DRSpriteDepth CharDepth;
 
-	private Coroutine FlashC;
+    private Coroutine FlashC;
+
+	public string CharacterName { get { return characterName; } }
 
     private void Start()
 	{
-		PnCMode = AssistantDirector.current.SceneType == SceneType.PointAndClick;
-		AmbientLight = RenderSettings.ambientLight;
+        if (MapSetup.current)
+			PnCMode = MapSetup.current.SceneType == SceneType.PointAndClick;
 
-		if (!CharTex) CharTex = GetComponent<Renderer>();
-		if (!CharShadow && transform.GetChild(0)) CharShadow = transform.GetChild(0).gameObject.GetComponent<DRSpriteDepth>();
-		if (!MainCamera) MainCamera = Camera.main.gameObject;
+		CharRenderer = GetComponent<Renderer>();
+		CharDepth = GetComponent<DRSpriteDepth>();
+		if (!MainCamera && Camera.main) MainCamera = Camera.main.transform;
 
-		CharTex.material.color = AmbientLight;
+		if (UseAmbientLight)
+		{
+            AmbientLight = RenderSettings.ambientLight;
+            CharRenderer.material.color = AmbientLight;
+        }
 	}
 
 	private void Update()
 	{
-		if (!DialogueHandler.InDialog && MainCamera && !PnCMode)
+		if (!DialogueRuntimeData.InDialog && MainCamera && !PnCMode)
 		{
-			transform.localRotation = Quaternion.Euler(new Vector3(0f, MainCamera.transform.localRotation.eulerAngles.y, 0f));
+			transform.localRotation = Quaternion.Euler(new Vector3(0f, MainCamera.transform.localRotation.eulerAngles.y + 180f, 0f));
 		}
 	}
 
 	private void OnEnable()
 	{
 		DialogueEventSystem.StartListening("DisableCharacterHighlight", DisableFocusHighlight);
-	}
+        DialogueEventSystem.StartListening("ChangeExpression", ChangeExpression);
+    }
 
 	private void OnDisable()
 	{
 		DialogueEventSystem.StopListening("DisableCharacterHighlight", DisableFocusHighlight);
-	}
+        DialogueEventSystem.StopListening("ChangeExpression", ChangeExpression);
+    }
 
-	/// <summary>
-	/// Used to change the main Texture of the Sprite Billboard.
-	/// </summary>
-	/// <param name="face"></param>
-	public void ChangeExpression(Material face)
+    /// <summary>
+    /// Used to change the main Texture of the Sprite Billboard.
+    /// </summary>
+    /// <param name="convert"></param>
+    public void ChangeExpression(object expressionMaterial)
 	{
-		CharTex.material = face;
-		if (CharShadow != null)
+        (string name, Material mat) convert = ((string name, Material mat))expressionMaterial;
+
+        if (convert.name != CharacterName)
+            return;
+
+        CharRenderer.material = convert.mat;
+		if (CharDepth != null)
 		{
-			StartCoroutine(CharShadowCoroutine(face));
+			StartCoroutine(CharShadowCoroutine(convert.mat));
 		}
 	}
-	private IEnumerator CharShadowCoroutine(Material mat)
+
+    public void ChangeExpression(string name, Material expressionMaterial)
+    {
+        if (name != CharacterName)
+            return;
+
+        CharRenderer.material = expressionMaterial;
+        if (CharDepth != null)
+        {
+            StartCoroutine(CharShadowCoroutine(expressionMaterial));
+        }
+    }
+
+    private IEnumerator CharShadowCoroutine(Material mat)
     {
 		yield return new WaitForSeconds(1.5f * Time.deltaTime);
-		CharShadow.UpdateMat(mat);
+        //CharacterDepth.mainTexture = CharTex.material.mainTexture;
+        CharDepth.UpdateMat(mat);
 	}
 
 	public void Focus(bool check)
 	{
 		if (check)
 		{
-			CharTex.material.color = Color.white;
+			CharRenderer.material.color = Color.white;
 		}
 		else
 		{
-			CharTex.material.color = AmbientLight;
+			CharRenderer.material.color = AmbientLight;
 		}
 	}
 
@@ -104,7 +132,7 @@ public class DRSpriteBillboard : MonoBehaviour
 
 		do
 		{
-			CharTex.material.color = Color.Lerp(Color.white, flash, _elaspedtime / _time);
+			CharRenderer.material.color = Color.Lerp(Color.white, flash, _elaspedtime / _time);
 			_elaspedtime += _time * 10f * Time.deltaTime;
 			yield return new WaitForEndOfFrame();
 			if (Input.GetButton("Cancel"))
@@ -115,14 +143,14 @@ public class DRSpriteBillboard : MonoBehaviour
 
 		do
 		{
-			CharTex.material.color = Color.Lerp(flash, Color.white, _elaspedtime / _time);
+			CharRenderer.material.color = Color.Lerp(flash, Color.white, _elaspedtime / _time);
 			_elaspedtime += _time * 10f * Time.deltaTime;
 			yield return new WaitForEndOfFrame();
 			if (Input.GetButton("Cancel"))
 				yield break;
 		} while (_elaspedtime < _time);
 
-		CharTex.material.color = Color.white;
+		CharRenderer.material.color = Color.white;
 		yield break;
 	}
 }

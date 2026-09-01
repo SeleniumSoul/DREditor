@@ -14,7 +14,6 @@ public class DRBacklog : MonoBehaviour
     void Awake()
     {
         if (!_AudSource) _AudSource = GetComponent<AudioSource>();
-        gameObject.GetComponentInParent<UIMenuSubmanager>().BacklogUI = gameObject;
         gameObject.SetActive(false);
     }
 

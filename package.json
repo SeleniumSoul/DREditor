@@ -1,12 +1,16 @@
 {
-  "name": "nl.happy30.dreditor",
+  "name": "nl.seleniumsoul.dreditor",
   "displayName": "DREditor",
-  "version": "0.5.0",
-  "unity": "2020.1",
-  "description": "Editor Tools to create games inspired by Danganronpa.\n\nModified and Maintained by SeleniumSoul",
+  "version": "0.0.1",
+  "unity": "6000.0",
+  "description": "Editor Tools to create games inspired by Danganronpa. This is SeleniumSoul's version of it.\n\nSome codes are based from happy30 and Sweden.",
   "dependencies": {
     "com.unity.textmeshpro": "2.0.1",
     "com.unity.inputsystem": "1.0.2"
   },
+  "_upm": {
+    "changelog": "- Started removing assets for an overhaul."
+  },
+  "author": "SeleniumSoul <lifereset45@gmail.com>",
   "type": "tool"
 }

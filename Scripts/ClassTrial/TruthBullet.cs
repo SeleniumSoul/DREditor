@@ -1,10 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
 
 namespace DREditor.Trial
 {
-    [System.Serializable]
     [CreateAssetMenu(menuName = "DREditor/Trials/Truth Bullet", fileName = "New Truth Bullet")]
     public class TruthBullet : ScriptableObject
     {

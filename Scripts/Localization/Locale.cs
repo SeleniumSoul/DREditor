@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace DREditor.Localization
 {
-    [System.Serializable]
     [CreateAssetMenu(menuName = "DREditor/Localization/Locale", fileName = "New Locale")]
     public class Locale : ScriptableObject
     {

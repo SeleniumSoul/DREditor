@@ -4,14 +4,11 @@ using UnityEngine;
 
 namespace DREditor.Characters
 {
-    
-    [System.Serializable]
     [CreateAssetMenu(menuName = "DREditor/Characters/Character Database", fileName = "CharacterDatabase")]
     public class CharacterDatabase : ScriptableObject
     {
         [SerializeField]
         public List<Character> Characters = new List<Character>();
-
 
         public List<string> GetNames()
         {

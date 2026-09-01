@@ -1,14 +1,16 @@
 ﻿//Point n' Click Camera Script for DREditor by SeleniumSoul
+
 using UnityEngine;
 using System.Collections;
 using DREditor.Dialogues;
+using UnityEngine.InputSystem;
 
 namespace DRDistrust.Camera
 {
 	[AddComponentMenu("DREditor/Cameras/DRPNCCamera")]
 	public class DRPNCCamera : MonoBehaviour
 	{
-		private DRInput _controls;
+		//private DRInput _controls;
 
 		//Public parameters
 		public bool Controllable = false;
@@ -28,6 +30,7 @@ namespace DRDistrust.Camera
 
 		//Private variables for calculation
 		//private float CamHAngle, CamVAngle;
+		private InputAction LookAction;
 		private Vector2 InputAngle;
 		private Vector2 CamAngle;
 		private Vector3 TargetFocus;
@@ -37,17 +40,18 @@ namespace DRDistrust.Camera
 
 		private void Awake()
 		{
-			_controls = new DRInput();
+			//_controls = new DRInput();
+			LookAction = InputSystem.actions.FindAction("Move");
 
-			_controls.PNCExplore.Move.performed += ctx =>
-			{
-				if (!DialogueHandler.InDialog && !DialogueHandler.InMenu && Controllable)
-					InputAngle = ctx.ReadValue<Vector2>();
-			};
-			_controls.PNCExplore.Move.canceled += ctx =>
-			{
-				InputAngle = Vector2.zero;
-			};
+			//LookAction.performed += ctx =>
+			//{
+			//	if (!DialogueHandler.InDialog && !DialogueHandler.InMenu && Controllable)
+			//		InputAngle = ctx.ReadValue<Vector2>();
+			//};
+			//LookAction.canceled += ctx =>
+			//{
+			//	InputAngle = Vector2.zero;
+			//};
 		}
 
 		void Start()
@@ -55,20 +59,24 @@ namespace DRDistrust.Camera
 			InitAngle = Quaternion.Euler(InitialVAngle, InitialHAngle, 0f);
 		}
 
-		private void OnEnable()
-		{
-			_controls.Enable();
-		}
+		//private void OnEnable()
+		//{
+		//	_controls.Enable();
+		//}
 
-		private void OnDisable()
-		{
-			_controls.Disable();
-		}
+		//private void OnDisable()
+		//{
+		//	_controls.Disable();
+		//}
 
 		void Update()
 		{
 			//Please comment Line below if your desired inital angles is already applied.
 			//InitAngle = Quaternion.Euler(InitialVAngle, InitialHAngle, 0f);
+
+			if (DialogueRuntimeData.InDialog || DialogueRuntimeData.InMenu) return;
+
+			InputAngle = LookAction.ReadValue<Vector2>();
 
 			if (TargetObject == null)
 			{

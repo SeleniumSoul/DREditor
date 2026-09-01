@@ -1,11 +1,11 @@
 ﻿//Backlog Scriptable Object script for DREditor by SeleniumSoul
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using DREditor.Characters;
 
 namespace DREditor.Dialogues
 {
-    [System.Serializable]
     [CreateAssetMenu(menuName = "DREditor/Dialogues/Backlog File", fileName = "New Backlog File")]
     public class Backlog : ScriptableObject
     {
@@ -31,7 +31,7 @@ namespace DREditor.Dialogues
         }
     }
 
-    [System.Serializable]
+    [Serializable]
     public class BacklogLines
     {
         public string Text;

@@ -1,10 +1,10 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace DREditor.Characters
 {
-    [System.Serializable]
+    [Serializable]
     public class LocalizedCharacter : ScriptableObject 
     {
         public Character original;

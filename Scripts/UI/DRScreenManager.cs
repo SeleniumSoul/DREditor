@@ -7,7 +7,6 @@ using DREditor.Dialogues;
 public class DRScreenManager : MonoBehaviour
 {
 	static public DRScreenManager current;
-	public DRInput _controls;
 	public GameObject[] UIGroups;
 	public GameObject PointAndClickCursor, FirstPersonCursor;
 
@@ -61,7 +60,7 @@ public class DRScreenManager : MonoBehaviour
 		//    help?.SetActive(hlpcheck);
 		//}
 
-		if (Input.GetButtonDown("Fire2") && DialogueHandler.InDialog && !DialogueHandler.InMenu)
+		if (Input.GetButtonDown("Fire2") && DialogueRuntimeData.InDialog && !DialogueRuntimeData.InMenu)
 		{
 			toggleUI = !toggleUI;
 			UIOpacity(toggleUI);
@@ -79,7 +78,7 @@ public class DRScreenManager : MonoBehaviour
 		if (!blcheck)
 		{
 			hlpcheck = !hlpcheck;
-			DialogueHandler.InMenu= hlpcheck;
+			DialogueRuntimeData.InMenu= hlpcheck;
 			//if (hlpcheck) Time.timeScale = 0f;
 			//else Time.timeScale = 1f;
 			//help?.SetActive(hlpcheck);
@@ -91,7 +90,7 @@ public class DRScreenManager : MonoBehaviour
 		if (hlpcheck)
 		{
 			blcheck = !blcheck;
-			DialogueHandler.InMenu = blcheck;
+			DialogueRuntimeData.InMenu = blcheck;
 			//if (blcheck) Time.timeScale = 0f;
 			//else Time.timeScale = 1f;
 			//backlog?.SetActive(blcheck);
@@ -100,7 +99,7 @@ public class DRScreenManager : MonoBehaviour
 
 	void OnCancel()
 	{
-		if (DialogueHandler.InDialog && !DialogueHandler.InMenu)
+		if (DialogueRuntimeData.InDialog && !DialogueRuntimeData.InMenu)
 		{
 			toggleUI = !toggleUI;
 			UIOpacity(toggleUI);

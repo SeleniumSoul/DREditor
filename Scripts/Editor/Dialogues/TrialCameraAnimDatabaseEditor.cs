@@ -3,6 +3,7 @@
  * Original Author: KHeartz
  */
 
+using System.IO;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -93,8 +94,8 @@ namespace DREditor.Dialogues.Editor
         }
         private AnimatorController GetAnimatorController()
         {
-            var dir = System.IO.Path.GetDirectoryName(AssetDatabase.GetAssetPath(cdb));
-            var controllerPath = System.IO.Path.Combine(dir, "animDatabaseController.controller");
+            var dir = Path.GetDirectoryName(AssetDatabase.GetAssetPath(cdb));
+            var controllerPath = Path.Combine(dir, "animDatabaseController.controller");
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
             if (controller != null)
             {

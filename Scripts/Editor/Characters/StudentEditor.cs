@@ -10,9 +10,12 @@ namespace DREditor.Characters.Editor
 	public class StudentEditor : UnityEditor.Editor
 	{
 		private Student stu;
-
-		private void OnEnable() => stu = target as Student;
-
+		private SerializedObject stuSO;
+		private void OnEnable()
+		{
+			stu = target as Student;
+			stuSO = serializedObject;
+		}
 		public override void OnInspectorGUI()
 		{
 			HandyFields.Label("Character Editor");
@@ -30,28 +33,35 @@ namespace DREditor.Characters.Editor
 			Sprites();
 			
 			EditorUtility.SetDirty(stu);
+			stuSO.Update();
+			stuSO.ApplyModifiedProperties();
 		}
 		
 		private void StudentLabel()
 		{
+			var textureLabelStyle = new GUIStyle
+			{
+				alignment = TextAnchor.MiddleCenter,
+				fixedHeight = 60
+			};
 			var bigLabelStyle = new GUIStyle
 			{
 				fontSize = 25,
 				fontStyle = FontStyle.Bold
 			};
-
+			
 			bigLabelStyle.normal.textColor = EditorGUIUtility.isProSkin ? Color.white : Color.black;
 
 			GUI.backgroundColor = stu.StudentCard.Color;
 
-			using (new EditorGUILayout.HorizontalScope("box"))
+			using (var hs = new EditorGUILayout.HorizontalScope("box", GUILayout.Height(60)))
 			{
 				GUILayout.FlexibleSpace();
 
 				var labelText = stu.LastName == "" && stu.FirstName == "" ? "No Name" : "";
 
 				if (stu.Nameplate == null) GUILayout.Label(labelText + stu.LastName + " " + stu.FirstName, bigLabelStyle);
-				else GUILayout.Label(stu.Nameplate);
+				else GUI.Label(hs.rect, stu.Nameplate.texture, textureLabelStyle);
 
 				GUILayout.FlexibleSpace();
 			}
@@ -73,6 +83,7 @@ namespace DREditor.Characters.Editor
 				if (stu.DefaultSprite != null) GUILayout.Label(stu.DefaultSprite, GUILayout.Width(Screen.width - 328), GUILayout.Height(410));
 				using (new EditorGUILayout.VerticalScope())
 				{
+					stu.CharacterID = HandyFields.StringField("ID: ", stu.CharacterID);
 					if (stu.Headshot != null) GUILayout.Label(stu.Headshot, GUILayout.Height(140));
 					stu.LastName = HandyFields.StringField("Last Name: ", stu.LastName);
 					stu.FirstName = HandyFields.StringField("First Name: ", stu.FirstName);
@@ -98,8 +109,9 @@ namespace DREditor.Characters.Editor
 			}
 
 			EditorGUILayout.BeginVertical("Box");
+			EditorGUILayout.PropertyField(stuSO.FindProperty("CharacterPrefab"));
 			stu.StudentCard.Color = HandyFields.ColorField(stu.StudentCard.Color);
-			stu.Nameplate = TextureFieldLabeledHorizontal("Default Nameplate: ", stu.Nameplate, 200, 40);
+			stu.Nameplate = SpriteFieldLabeledHorizontal("Default Nameplate: ", stu.Nameplate, 200, 40);
 			stu.Headshot = TextureFieldLabeledHorizontal("Default Headshot: ", stu.Headshot, 300, 150);
 			stu.TrialNameplate = TextureFieldLabeledHorizontal("Trial Nameplate: ", stu.TrialNameplate);
 			stu.TrialHeight = HandyFields.FloatField("Trial Height: ", stu.TrialHeight);
@@ -230,7 +242,21 @@ namespace DREditor.Characters.Editor
 			return result;
 		}
 
-		private static void AliasList(List<Alias> aliasList)
+        private static Sprite SpriteFieldLabeledHorizontal(string label, Sprite texture, int width = 70, int height = 70)
+        {
+            Sprite result;
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(label);
+            }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                result = HandyFields.UnityField(texture, width, height);
+            }
+            return result;
+        }
+
+        private static void AliasList(List<Alias> aliasList)
 		{
 			if (GUILayout.Button("Add Alias", GUILayout.Width(120)))
 			{
@@ -244,7 +270,7 @@ namespace DREditor.Characters.Editor
 					aliasList[i].Name = HandyFields.StringField("Alias " + i + ": ", aliasList[i].Name, 180);
 					var removed = GUILayout.Button("x", GUILayout.Width(20));
 					EditorGUILayout.EndHorizontal();
-					aliasList[i].Nameplate = TextureFieldLabeledHorizontal("Nameplate:", aliasList[i].Nameplate);
+					aliasList[i].Nameplate = SpriteFieldLabeledHorizontal("Nameplate:", aliasList[i].Nameplate);
 					if (removed)
 					{
 						aliasList.RemoveAt(i);

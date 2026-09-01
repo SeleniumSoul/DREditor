@@ -1,11 +1,9 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-using JetBrains.Annotations;
 using DREditor.Characters;
 using DREditor.Dialogues.Events;
-using DREditor.EventObjects;
 
 namespace DREditor.Dialogues
 {
@@ -82,16 +80,29 @@ namespace DREditor.Dialogues
 #endif
 	}
 
-	[System.Serializable]
+	[Serializable]
 	[CreateAssetMenu(menuName = "DREditor/Dialogues/Dialogue", fileName = "New Dialogue")]
 	public class Dialogue : DialogueBase
 	{
 		public List<Line> Lines = new List<Line>();
 		public List<Choice> Choices = new List<Choice>();
-		public List<IDialogueEvent> StartEvents = new List<IDialogueEvent>();
+		[SerializeReference] public List<IDialogueEvent> StartEvents = new List<IDialogueEvent>();
+
+		public List<Character> GetAllCharactersInDialogue()
+		{
+			var result = new List<Character>();
+
+			foreach (Line line in Lines)
+			{
+				if (!result.Contains(line.Speaker))
+					result.Add(line.Speaker);
+			}
+
+			return result;
+		}
 	}
 
-	[System.Serializable]
+	[Serializable]
 	public class Line
 	{
 		public string translationKey;
@@ -100,7 +111,6 @@ namespace DREditor.Dialogues
 		public string Text;
 		public AudioClip VoiceSFX;
 		public List<AudioClip> SFX = new List<AudioClip>();
-		public List<SceneEvent> Events = new List<SceneEvent>();
 		[SerializeReference] public List<IDialogueEvent> DiaEvents;
 		public float TimeToNextLine;
 		public bool AutomaticLine;
@@ -113,7 +123,7 @@ namespace DREditor.Dialogues
 		#endif
 	}
 
-	[System.Serializable]
+	[Serializable]
 	public class Choice
 	{
 		public string ChoiceText;
@@ -121,18 +131,17 @@ namespace DREditor.Dialogues
 		public int NextIndexInDialogue;
 	}
 
-	[System.Serializable]
+	[Serializable]
 	public class Variable
 	{
 		public bool Enabled;
-		public BoolWithEvent BoolVariable;
 		public Dialogue NextDialogueTrue;
 		public int NextIndexInDialogueTrue;
 		public Dialogue NextDialogueFalse;
 		public int NextIndexInDialogueFalse;
 	}
 
-	[System.Serializable]
+	[Serializable]
 	public class DirectTo
 	{
 		public bool Enabled;
@@ -140,7 +149,7 @@ namespace DREditor.Dialogues
 		public int NewDialogueIndex;
 	}
 
-	[System.Serializable]
+	[Serializable]
 	public class SceneTransition
 	{
 		public bool Enabled;

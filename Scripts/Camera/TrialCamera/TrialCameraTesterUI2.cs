@@ -4,6 +4,7 @@
  * Contributing Author: KHeartz
  */
 
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using DREditor.Camera;
@@ -70,7 +71,7 @@ namespace DREditor.Debugging
         }
         private void AddAnimButtons()
         {
-            System.Array.ForEach(CameraAnimator.runtimeAnimatorController.animationClips,
+            Array.ForEach(CameraAnimator.runtimeAnimatorController.animationClips,
                 animState => AddAnimButton(animState.name));
         }
         private void AddAnimButton(string animName)

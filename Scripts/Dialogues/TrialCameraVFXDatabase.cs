@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace DREditor.Dialogues
 {
-    [System.Serializable]
     [CreateAssetMenu(menuName = "DREditor/CameraVFX/CameraVFX Database", fileName = "CameraVFXDatabase")]
     public class TrialCameraVFXDatabase : ScriptableObject
     {

@@ -1,32 +1,42 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace DREditor.Characters
 {
-	[System.Serializable]
+	[Serializable]
 	public class Alias
 	{
 		public string Name;
-		public Texture2D Nameplate;
+		public Sprite Nameplate;
 	}
 
-    [System.Serializable]
-    public class Character : ScriptableObject
+    [Serializable]
+    public class Character : ScriptableObject, IEquatable<Character>
     {
+        [Tooltip("The prefab used for the characters.")]
+        public AssetReferenceT<GameObject> CharacterPrefab;
+        public string CharacterID;
         public string translationKey;
         public string LastName = "";
         public string FirstName = "";
-        [Tooltip("Currently used as a variable for Splash Arts")]
+        [Tooltip("Currently used for Splash Arts.")]
         public Texture2D DefaultSprite;
         public Texture2D TrialPortrait;
 #if UNITY_EDITOR
         public List<Expression> Expressions = new List<Expression>();
 #endif
         public List<Alias> Aliases = new List<Alias>();
-        public Texture2D Nameplate;
+        public Sprite Nameplate;
         public Texture2D Headshot;
         public Texture2D TrialNameplate;
         public float TrialHeight = 7.88f;
+
+        public bool Equals(Character other)
+        {
+            return CharacterID == other.CharacterID;
+        }
 
         /// <summary>
         /// Returns the full name of the character.
