@@ -1,5 +1,6 @@
 using System;
-using UnityEngine;
+using System.Threading.Tasks;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -12,9 +13,9 @@ namespace DREditor.Dialogues.Events
 	{
 		private bool _ShowHelp = false;
 
-		public void TriggerDialogueEvent()
+		public async Task TriggerEvent()
 		{
-			DialogueEventSystem.TriggerEvent("CharacterLeave");
+			await DialogueEventSystem.TriggerEvent("CharacterLeave");
 		}
 
 		#if UNITY_EDITOR

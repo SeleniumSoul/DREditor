@@ -129,7 +129,9 @@ namespace DREditor.Dialogues
 		public string ChoiceText;
 		public Dialogue NextDialogue;
 		public int NextIndexInDialogue;
-	}
+
+        [SerializeReference] public List<IDialogueEvent> DiaEvents = new();
+    }
 
 	[Serializable]
 	public class Variable

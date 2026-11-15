@@ -6,23 +6,23 @@ using DREditor.Dialogues.Events;
 using System;
 using DREditor;
 
+[Obsolete]
 public class DRFPSCursor : MonoBehaviour
 {
-	public AudioClip[] SFX = new AudioClip[2];
-	public TextMeshProUGUI NameText;
-	public CanvasGroup NamePanel;
-	private Animator _cursoranimator;
-	private Camera _maincamera;
-
-	public Dialogue DialogFile;
+    [SerializeField] private AudioClip[] SFX = new AudioClip[2];
+    [SerializeField] private TextMeshProUGUI NameText;
+    [SerializeField] private CanvasGroup NamePanel;
 
 	[Header("Raycasting")]
     [SerializeField] private LayerMask RaycastMask;
     [SerializeField] private float RaycastDistance = 5f;
-	private RaycastHit[] _curshit = new RaycastHit[5];
-	private Ray _cursray;
-	private DRBillboardProperties _properties;
-	//private DRInput _controls;
+
+    private Ray cursray;
+    private RaycastHit[] curshit = new RaycastHit[5];
+
+    private Animator _cursoranimator;
+    private Camera _maincamera;
+    private IExaminable examinable;
 
 	private void Awake()
 	{
@@ -31,9 +31,6 @@ public class DRFPSCursor : MonoBehaviour
 
     void Start()
 	{
-		if (DialoguePlayer.current.DRCursor == null)
-			DialoguePlayer.current.DRCursor = gameObject;
-
 		_maincamera = Camera.main;
 		_cursoranimator = GetComponent<Animator>();
 		NamePanel.alpha = 0f;
@@ -49,13 +46,12 @@ public class DRFPSCursor : MonoBehaviour
 		//_controls.Disable();
 	}
 
-	void PassThreadToHandler()
+	private void Examine()
 	{
-        if (_properties)
+        if (examinable != null)
         {
             //TODO: Polish this.
-            DialogueRuntimeData.CurrentCluster = GameObject.FindGameObjectWithTag("Director").GetComponent<MapSetup>().GetCluster(_properties.ClusterID);
-            DialogueRuntimeData.DialogueAsset = _properties.DialogThreadPass();
+            examinable.Examine();
         }
         else Debug.LogError("DREditor (PassThreadToHandler): Unable to find properties.");
 	}
@@ -63,36 +59,34 @@ public class DRFPSCursor : MonoBehaviour
 	void Update()
 	{
 		if (_maincamera == null) _maincamera = Camera.main;
-		_cursray = _maincamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-		var amount = Physics.RaycastNonAlloc(_cursray, _curshit, RaycastDistance, RaycastMask);//, 1 << 10 | 1 << 12);
+		cursray = _maincamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+		var amount = Physics.RaycastNonAlloc(cursray, curshit, RaycastDistance, RaycastMask);
 
         if (amount <= 0) return;
-        if (_curshit[0].collider.gameObject.layer == 3) return;
+        if (curshit[0].collider.gameObject.layer == 3) return;
 
-        for (int i = 0; i < _curshit.Length; ++i)
+        for (int i = 0; i < curshit.Length; ++i)
         {
             try
             {
-                Renderer rend = _curshit[i].transform.GetComponent<Renderer>();
+                Renderer rend = curshit[i].transform.GetComponent<Renderer>();
                 Texture2D tex = rend.material.mainTexture as Texture2D;
-                Vector2 pixelUV = _curshit[i].textureCoord;
+                Vector2 pixelUV = curshit[i].textureCoord;
                 pixelUV.x *= tex.width;
                 pixelUV.y *= tex.height;
 
                 if (tex.GetPixel((int)pixelUV.x, (int)pixelUV.y).a != 0f)
                 {
-                    NameText.text = _curshit[i].transform.name;
-                    _properties = _curshit[i].transform.gameObject.GetComponent<DRBillboardProperties>();
+                    NameText.text = curshit[i].transform.name;
+                    examinable = curshit[i].transform.gameObject.GetComponent<IExaminable>();
                     NamePanel.alpha = 0.9f;
                     _cursoranimator.SetBool("Highlight", true);
 
-                    if (//_controls.Global.Confirm.triggered &&
-                        !DialogueRuntimeData.InDialog &&
+                    if (!DialogueRuntimeData.InDialog &&
                         !DialogueRuntimeData.InMenu &&
                         !DialogueRuntimeData.IsWriting &&
                         !UIFade.OnScreenFade)
                     {
-                        DialogueRuntimeData.InDialog = true;
                         TriggerSound(1);
                         _cursoranimator.SetTrigger("Click");
 
@@ -116,45 +110,17 @@ public class DRFPSCursor : MonoBehaviour
                 NamePanel.alpha = 0f;
                 _cursoranimator.SetBool("Highlight", false);
             }
-            //if (tex.GetPixel((int)pixelUV.x, (int)pixelUV.y).a != 0f)
-            //{
-            //	NameText.text = _curshit[i].transform.name;
-            //	_properties = _curshit[i].transform.gameObject.GetComponent<DRBillboardProperties>();
-            //	NamePanel.alpha = 0.9f;
-            //	_cursoranimator.SetBool("Highlight", true);
-
-            //	if (_controls.Global.Confirm.triggered &&
-            //		!DialogueHandler.InDialog &&
-            //		!DialogueHandler.InMenu &&
-            //		!DialogueHandler.IsWriting &&
-            //		!UIFade.OnScreenFade)
-            //	{
-            //		DialogueHandler.InDialog = true;
-            //		TriggerSound(1);
-            //		_cursoranimator.SetTrigger("Click");
-
-            //		//Pass: Use ClickAnim as Animation Event
-            //	}
-            //	return;
-            //}
-            //else
-            //{
-            //	NamePanel.alpha = 0f;
-            //	_cursoranimator.SetBool("Highlight", false);
-            //}
         }
     }
 
 	public void ClickAnim() //Used as Animation Event
 	{
-		if (_properties != null && _properties.DialogThreadList[0] != null && _properties.DialogThreadList.Count != 0)
+		if (examinable != null)
 		{
-			PassThreadToHandler();
-			DialogueEventSystem.TriggerEvent("StartDialogue");
+            Examine();
 		}
 		else
 		{
-			DialogueRuntimeData.InDialog = false;
 			Debug.LogError("DREditor (DRFPSCursor): Dialogue File Missing! Please set it up on DR Sprite Properties.");
 			return;
 		}

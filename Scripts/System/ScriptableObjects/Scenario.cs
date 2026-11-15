@@ -17,7 +17,7 @@ public struct CharacterClusterSetup
 {
     public CharacterPlacement[] placements;
 
-    public List<AssetReferenceT<GameObject>> GetAllCharacterAssetReferences()
+    public readonly List<AssetReferenceT<GameObject>> GetAllCharacterAssetReferences()
     {
         var refList = new List<AssetReferenceT<GameObject>>();
 
@@ -34,9 +34,14 @@ public struct CharacterClusterSetup
     }
 }
 
-[CreateAssetMenu(fileName = "SceneParameters", menuName = "DREditor/Scene Parameters")]
-public class SceneParameters : ScriptableObject
+[CreateAssetMenu(fileName = "Scenario", menuName = "DREditor/Scenario")]
+public class Scenario : ScriptableObject
 {
-    [SerializeField] public CharacterClusterSetup[] Clusters;
-    [SerializeField] public Dialogue StartDialogue;
+    [SerializeField] private CharacterClusterSetup[] clusters;
+    [SerializeField] private Dialogue startDialogue;
+    [SerializeField] private int musicIndex;
+
+    public CharacterClusterSetup[] Clusters => clusters;
+    public Dialogue StartDialogue => startDialogue;
+    public int MusicIndex => musicIndex;
 }

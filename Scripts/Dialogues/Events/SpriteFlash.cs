@@ -1,5 +1,7 @@
 using System;
 using UnityEngine;
+using System.Threading.Tasks;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -10,15 +12,14 @@ namespace DREditor.Dialogues.Events
 	[Serializable]
 	public class SpriteFlash : IDialogueEvent
 	{
-		public bool _ShowHelp = false;
-
-		public void TriggerDialogueEvent()
+		public async Task TriggerEvent()
 		{
-			DialogueEventSystem.TriggerEvent("SpriteFlash");
+			await DialogueEventSystem.TriggerEvent("Flash");
 		}
 
 		#if UNITY_EDITOR
-		public void EditorUI()
+        public bool _ShowHelp = false;
+        public void EditorUI()
 		{
 			EditorGUILayout.HelpBox("The current character's sprite will flash at this point.", MessageType.Info, true);
 		}

@@ -1,110 +1,105 @@
-﻿using System.Collections;
-using UnityEngine;
-using DREditor;
+﻿using DREditor;
 using DREditor.Dialogues;
 using DREditor.Dialogues.Events;
+using System.Collections;
+using System.Threading.Tasks;
+using UnityEngine;
 
 public class DRSpriteBillboard : MonoBehaviour
 {
-	[SerializeField] private string characterName;
+	[Module] private readonly DRRoomSetup roomSetup;
+	[Module] private readonly DialoguePlayer player;
+
 	[SerializeField] private bool UseAmbientLight;
 	[SerializeField] private Color AmbientLight = Color.gray;
+	[SerializeField] private bool DisableRotation;
 
-	private bool PnCMode;
-	private Transform MainCamera;
-	private Renderer CharRenderer;
-    private DRSpriteDepth CharDepth;
+	private Transform mainCamera;
+	private Renderer charRenderer;
+	private DRSpriteDepth charDepth;
 
-    private Coroutine FlashC;
+	private DRBillboardProperties properties;
 
-	public string CharacterName { get { return characterName; } }
-
-    private void Start()
+	private void Awake()
 	{
-        if (MapSetup.current)
-			PnCMode = MapSetup.current.SceneType == SceneType.PointAndClick;
+		properties = GetComponent<DRBillboardProperties>();
+		DRModuleSystem.Inject(this);
+	}
 
-		CharRenderer = GetComponent<Renderer>();
-		CharDepth = GetComponent<DRSpriteDepth>();
-		if (!MainCamera && Camera.main) MainCamera = Camera.main.transform;
+	private void Start()
+	{
+		if (roomSetup != null)
+			DisableRotation = roomSetup.SceneType == SceneType.PointAndClick;
+
+		charRenderer = GetComponent<Renderer>();
+		charDepth = GetComponent<DRSpriteDepth>();
+		if (!mainCamera && Camera.main) mainCamera = Camera.main.transform;
 
 		if (UseAmbientLight)
 		{
-            AmbientLight = RenderSettings.ambientLight;
-            CharRenderer.material.color = AmbientLight;
-        }
+			AmbientLight = RenderSettings.ambientLight;
+
+			Color.RGBToHSV(AmbientLight, out var h, out var s, out var v);
+			var bright = Color.HSVToRGB(h, s, 1f);
+
+			charRenderer.material.color = bright;
+		}
 	}
 
 	private void Update()
 	{
-		if (!DialogueRuntimeData.InDialog && MainCamera && !PnCMode)
+		if (!DialogueRuntimeData.InDialog && mainCamera && !DisableRotation)
 		{
-			transform.localRotation = Quaternion.Euler(new Vector3(0f, MainCamera.transform.localRotation.eulerAngles.y + 180f, 0f));
+			transform.localRotation = Quaternion.Euler(new Vector3(0f, mainCamera.transform.localRotation.eulerAngles.y + 180f, 0f));
 		}
 	}
 
 	private void OnEnable()
 	{
-		DialogueEventSystem.StartListening("DisableCharacterHighlight", DisableFocusHighlight);
-        DialogueEventSystem.StartListening("ChangeExpression", ChangeExpression);
-    }
+		DialogueEventSystem.RegisterEvents(this);
+	}
 
 	private void OnDisable()
 	{
-		DialogueEventSystem.StopListening("DisableCharacterHighlight", DisableFocusHighlight);
-        DialogueEventSystem.StopListening("ChangeExpression", ChangeExpression);
-    }
+		DialogueEventSystem.DeregisterEvents(this);
+	}
 
-    /// <summary>
-    /// Used to change the main Texture of the Sprite Billboard.
-    /// </summary>
-    /// <param name="convert"></param>
-    public void ChangeExpression(object expressionMaterial)
+	/// <summary>
+	/// Used to change the main Texture of the Sprite Billboard.
+	/// </summary>
+	/// <param name="convert"></param>
+	[DialogueEvent("ChangeExpression")]
+	public void ChangeExpression((string name, Material mat) expressionMaterial)
 	{
-        (string name, Material mat) convert = ((string name, Material mat))expressionMaterial;
+		//(string name, Material mat) convert = ((string name, Material mat))expressionMaterial;
 
-        if (convert.name != CharacterName)
-            return;
+		if (properties == null || expressionMaterial.name != properties.GetName())
+			return;
 
-        CharRenderer.material = convert.mat;
-		if (CharDepth != null)
+		charRenderer.material = expressionMaterial.mat;
+		if (charDepth != null)
 		{
-			StartCoroutine(CharShadowCoroutine(convert.mat));
+			StartCoroutine(CharShadowCoroutine(expressionMaterial.mat));
 		}
 	}
 
-    public void ChangeExpression(string name, Material expressionMaterial)
-    {
-        if (name != CharacterName)
-            return;
-
-        CharRenderer.material = expressionMaterial;
-        if (CharDepth != null)
-        {
-            StartCoroutine(CharShadowCoroutine(expressionMaterial));
-        }
-    }
-
-    private IEnumerator CharShadowCoroutine(Material mat)
-    {
+	private IEnumerator CharShadowCoroutine(Material mat)
+	{
 		yield return new WaitForSeconds(1.5f * Time.deltaTime);
-        //CharacterDepth.mainTexture = CharTex.material.mainTexture;
-        CharDepth.UpdateMat(mat);
+		//CharacterDepth.mainTexture = CharTex.material.mainTexture;
+		charDepth.UpdateMat(mat);
 	}
 
 	public void Focus(bool check)
 	{
-		if (check)
-		{
-			CharRenderer.material.color = Color.white;
-		}
-		else
-		{
-			CharRenderer.material.color = AmbientLight;
-		}
+		if (charRenderer == null)
+			charRenderer = GetComponent<Renderer>();
+		
+		charRenderer.material.color = check ? Color.white : AmbientLight;
 	}
 
-	private void DisableFocusHighlight(object value)
+	[DialogueEvent("DisableCharacterHighlight")]
+	private void DisableFocusHighlight()
 	{
 		Focus(false);
 	}
@@ -113,44 +108,29 @@ public class DRSpriteBillboard : MonoBehaviour
 	/// Flash the texture for a split second.
 	/// </summary>
 	/// <param name="intensity"></param>
-	public void Flash(float intensity = 5f, AudioClip aud = null)
+	[DialogueEvent("Flash")]
+	public async Task Flash()
 	{
-		if (aud != null) DialogueEventSystem.TriggerEvent("PlaySystemSFX", aud);
-		FlashC = StartCoroutine(FlashCoroutine(intensity));
-	}
-	
-	//Planning to change this into a Sinewave here. But too lazy to do it yet.
-	private IEnumerator FlashCoroutine(float intensity)
-	{
-		float _time = 0.01f;
-		float _elaspedtime = 0f;
-		Color flash;
-		flash.r = intensity;
-		flash.g = intensity;
-		flash.b = intensity;
-		flash.a = 1f;
+		//if (aud != null)
+		//	_ = DialogueEventSystem.TriggerEvent("PlaySystemSFX", aud);
 
-		do
+		if (player.GetCurrentCharacter().FullName(false) != properties.GetName())
+			return;
+
+		var baseColor = charRenderer.material.color;
+		var intensity = 5f;
+		var elapsedTime = 0f;
+		var endTime = 0.2f;
+		var flashColor = new Color(intensity, intensity, intensity);
+
+		while (elapsedTime < endTime)
 		{
-			CharRenderer.material.color = Color.Lerp(Color.white, flash, _elaspedtime / _time);
-			_elaspedtime += _time * 10f * Time.deltaTime;
-			yield return new WaitForEndOfFrame();
-			if (Input.GetButton("Cancel"))
-				yield break;
-		} while (_elaspedtime < _time);
+			var c = Mathf.Sin(elapsedTime / endTime * Mathf.PI);
+			charRenderer.material.color = Color.Lerp(baseColor, flashColor, c);
+			elapsedTime += Time.deltaTime;
+			await Awaitable.EndOfFrameAsync();
+		}
 
-		_elaspedtime = 0f;
-
-		do
-		{
-			CharRenderer.material.color = Color.Lerp(flash, Color.white, _elaspedtime / _time);
-			_elaspedtime += _time * 10f * Time.deltaTime;
-			yield return new WaitForEndOfFrame();
-			if (Input.GetButton("Cancel"))
-				yield break;
-		} while (_elaspedtime < _time);
-
-		CharRenderer.material.color = Color.white;
-		yield break;
+		charRenderer.material.color = baseColor;
 	}
 }

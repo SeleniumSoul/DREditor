@@ -6,269 +6,185 @@
 
 using DREditor.Characters;
 using DREditor.Dialogues.Events;
-using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
+using DiaRunData = DREditor.Dialogues.DialogueRuntimeData;
 
 /// <summary>
-/// Component used for dialogue rendering. Use this as a component on the main SYSTEM gameObject.
+/// Component service used for dialogue rendering. Use this as a component on the main SYSTEM gameObject.
 /// </summary>
 namespace DREditor.Dialogues
 {
-	public class DialoguePlayer : MonoBehaviour
+	public class DialoguePlayer : MonoBehaviour, IModule
 	{
-		public static DialoguePlayer current;
-		public static Action DialogueStarted;
-		public static Action DialogueEnded;
+		[Module] private ProjectwidePlayerInput playerInput;
+		[SerializeField] private float AutoWaitTime = 1f;
+		[SerializeField] private float SkipWaitTime = 0.4f;
 
-		public bool PropMode = false;
+		private Coroutine AutoRoutine;
+		private CharacterCluster CurrentCluster;
+		private Dictionary<bool, GameObject> TemporaryLoadedCharacters;
 
-		public float AutoWaitTime = 1f;
-		private float SkipWaitTime = 0.4f;
+		[Header("Controls")]
+		[SerializeField] private InputActionReference LookAction;
+		[SerializeField] private InputActionReference AcceptAction;
+		[SerializeField] private InputActionReference CancelAction;
 
-		public DialogueBoxManager SayBoxManager;
-		public GameObject DiaPanels, DRCursor;
-		public GameObject CurrentCharacter;
+		private GameObject currentCG;
 
-		[SerializeField] private AudioClip FlashSFX;
+		public Line GetLine() => DiaRunData.CurrentLine;
+		public Character GetCurrentCharacter() => DiaRunData.CurrentLine.Speaker;
 
-		private UnityEngine.Camera CurrentMainCamera;
-		private DRDialogueBox SayBox;
-
-		private Coroutine AutoC;
-
-        private CharacterCluster CurrentCluster;
-        private Dictionary<bool, GameObject> TemporaryLoadedCharacters;
-
-		private InputAction confirmAction;
-		private InputAction cancelAction;
-		private InputAction autoAction;
-		private InputAction skipAction;
-        private void Awake()
-		{
-			if (current == null) current = this;
-			else Destroy(this);
-
-			if (!CurrentMainCamera) CurrentMainCamera = UnityEngine.Camera.main;
-
-			confirmAction = InputSystem.actions.FindAction("Confirm");
-			cancelAction = InputSystem.actions.FindAction("Cancel");
-			autoAction = InputSystem.actions.FindAction("Auto");
-			skipAction = InputSystem.actions.FindAction("Skip");
-
-			confirmAction.started += ctx =>
-			{
-				if (DialogueRuntimeData._skip || DialogueRuntimeData._auto)
-				{
-					DialogueRuntimeData._skip = false;
-					DialogueRuntimeData._auto = false;
-					if (AutoC != null)
-					{
-						StopCoroutine(AutoC);
-					}
-					SayBox.Auto(DialogueRuntimeData._auto);
-					return;
-				}
-
-				OnConfirm();
-			};
-			cancelAction.performed += ctx =>
-			{
-				if (DialogueRuntimeData.InDialog && !DialogueRuntimeData.InMenu && DialogueRuntimeData.Advance)
-				{
-					if (DialogueRuntimeData._auto) DialogueRuntimeData._auto = false;
-					DialogueRuntimeData._skip = !DialogueRuntimeData._skip;
-					SayBox.Auto(DialogueRuntimeData._skip);
-
-					if (DialogueRuntimeData._skip)
-					{
-						AutoC = StartCoroutine(AutoCoroutine(SkipWaitTime));
-					}
-					else
-					{
-						if (AutoC != null)
-						{
-							StopCoroutine(AutoC);
-						}
-					}
-				}
-			};
-			skipAction.performed += ctx =>
-			{
-				if (DialogueRuntimeData._skip)
-				{
-					DialogueRuntimeData._skip = false;
-					DialogueRuntimeData._auto = false;
-					return;
-				}
-
-				if (DialogueRuntimeData.InDialog && !DialogueRuntimeData.InMenu && DialogueRuntimeData.Advance)
-				{
-					DialogueRuntimeData._auto = !DialogueRuntimeData._auto;
-					SayBox.Auto(DialogueRuntimeData._auto);
-
-					if (DialogueRuntimeData._auto)
-					{
-						AutoC = StartCoroutine(AutoCoroutine(AutoWaitTime));
-					}
-					else
-					{
-						if (AutoC != null)
-						{
-							StopCoroutine(AutoC);
-						}
-					}
-				}
-			};
-		}
-
-		private void Start()
-		{
-			if (!CurrentMainCamera) CurrentMainCamera = UnityEngine.Camera.main;
-		}
+		public Task Init() { return Task.CompletedTask; }
 
 		private void OnEnable()
 		{
-			DialogueEventSystem.StartListening("StartDialogue", StartDialogue);
-			DialogueEventSystem.StartListening("ContinueDialogue", ContinueDialogue);
-			DialogueEventSystem.StartListening("LinePass", ProcessLine);
+			DRModuleSystem.Inject(this);
 
-			//Special Events
-			DialogueEventSystem.StartListening("ShowCG", ShowCG);
-			DialogueEventSystem.StartListening("CharacterLeave", LeaveSequence);
+			playerInput.RegisterInput(AcceptAction, OnConfirm);
+            playerInput.RegisterInput(CancelAction, OnSkip);
+            //playerInput.RegisterInput(AcceptAction, OnConfirm);
+   //         AcceptAction.action.started += OnConfirm;
+			//CancelAction.action.performed += OnSkip;
+			//AcceptAction.action.actionMap.Enable();
+
+            DiaRunData.DialogueStarted += StartDialogue;
+            DialogueEventSystem.RegisterEvents(this);
+        }
+
+		private void OnDestroy()
+		{
+			//AcceptAction.action.started -= OnConfirm;
+			//CancelAction.action.performed -= OnSkip;
+
+			DiaRunData.DialogueStarted -= StartDialogue;
+			DialogueEventSystem.DeregisterEvents(this);
 		}
 
-		private void OnDisable()
+		public void OnConfirm(InputAction.CallbackContext ctx)
 		{
-			DialogueEventSystem.StopListening("StartDialogue", StartDialogue);
-            DialogueEventSystem.StopListening("ContinueDialogue", ContinueDialogue);
-            DialogueEventSystem.StopListening("LinePass", ProcessLine);
+			//Debug.Log($"DREditor: {AcceptAction.action.actionMap.enabled} iswriting:{DiaRunData.IsWriting} onauto: {DiaRunData.OnAuto} onskip: {DiaRunData.OnSkip}");
+			if (!DiaRunData.InDialog || DiaRunData.InMenu || !DiaRunData.Advance)
+				return;
 
-			//Special Events
-			DialogueEventSystem.StopListening("ShowCG", ShowCG);
-			DialogueEventSystem.StopListening("CharacterLeave", LeaveSequence);
-		}
-
-		public void OnConfirm()
-		{
-			if (DialogueRuntimeData.InDialog && !DialogueRuntimeData.InMenu && DialogueRuntimeData.Advance && !DialogueRuntimeData.OnTransition)
+			if (!DiaRunData.IsWriting)
 			{
-				if (!DialogueRuntimeData.IsWriting)
+				if (DiaRunData.dialogueState != DiaRunData.DialogueState.Skip)
 				{
-					if (!DialogueRuntimeData._auto)
-					{
-						ContinueDialogue();
-					}
-					else
-					{
-						DialogueRuntimeData._auto = false;
-						SayBox.Auto(DialogueRuntimeData._auto);
+                    DiaRunData.SetDialogueState(DiaRunData.DialogueState.Normal);
 
-						if (AutoC != null)
-						{
-							StopCoroutine(AutoC);
-						}
-					}
+                    ContinueDialogue();
 				}
-			}
-		}
-
-		private void CamNullCheck()
-		{
-			if (!CurrentMainCamera) CurrentMainCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<UnityEngine.Camera>();
-		}
-
-		private void StartDialogue(object value = null)
-		{
-			CamNullCheck();
-			if (DRCursor) DRCursor.SetActive(false);
-
-			//DialogueHandler.Skippable = true;
-			DialogueRuntimeData.InDialog = true;
-
-			DialogueRuntimeData._dialogueLength = DialogueRuntimeData.DialogueAsset.Lines.Count;
-			DialogueRuntimeData._currentLineNum = 0;
-
-			switch ((int)DialogueRuntimeData.DialogueAsset.DialogueMode)
-			{
-				case 0: //Normal
-					SayBox = SayBoxManager.DialogueBox.GetComponent<DRDialogueBox>();
-					if (DialogueRuntimeData.DialogueAsset.ShowDialoguePanel) // With Dialogue Panels
-					{
-						//CurrentMainCamera.enabled = false;
-						if (DiaPanels) DiaPanels.SetActive(true);
-						//DialogueEventSystem.TriggerEvent("DiaPanelInitialize");
-					}
-					else // Without Dialogue Panels
-					{
-						SayBox.gameObject.SetActive(true);
-						DialogueRuntimeData.Advance = true;
-						DialogueEventSystem.TriggerEvent("LinePass", DialogueRuntimeData._currentLineNum);
-					}
-					break;
-				case 1: //CG - without Dialogue Panels
-					SayBox = SayBoxManager.DialogueBox_CG.GetComponent<DRDialogueBox>();
-					DialogueRuntimeData.OnTransition = false;
-					SayBox.gameObject.SetActive(true);
-					DialogueEventSystem.TriggerEvent("LinePass", DialogueRuntimeData._currentLineNum);
-					break;
-				default:
-					Debug.Log("DREditor (DialoguePlayer): Unable to identify dialogue mode. Defaulting to No Panel.");
-					SayBox = SayBoxManager.DialogueBox.GetComponent<DRDialogueBox>();
-					SayBox.gameObject.SetActive(true);
-					DialogueEventSystem.TriggerEvent("LinePass", DialogueRuntimeData._currentLineNum);
-					break;
-			}
-
-			if (DialogueRuntimeData.DialogueAsset.StartEvents.Count > 0)
-			{
-				foreach (var ev in DialogueRuntimeData.DialogueAsset.StartEvents)
+				else
 				{
-					ev.TriggerDialogueEvent();
-				}
-			}
-		}
+					DiaRunData.SetDialogueState(DiaRunData.DialogueState.Normal);
 
-		private void ContinueDialogue()
-		{
-			DialogueRuntimeData._currentLineNum++;
-
-			if (DialogueRuntimeData._currentLineNum <= DialogueRuntimeData._dialogueLength - 1)
-			{
-				EnableDiaPanels();
-
-				ProcessLine(DialogueRuntimeData._currentLineNum);
-
-				if (DialogueRuntimeData._auto && !DialogueRuntimeData._currentLine.Text.Contains("[WAIT]"))
-				{
-					AutoC = StartCoroutine(AutoCoroutine(AutoWaitTime));
-				}
-				else if (DialogueRuntimeData._skip && !DialogueRuntimeData._currentLine.Text.Contains("[WAIT]"))
-				{
-					AutoC = StartCoroutine(AutoCoroutine(SkipWaitTime));
+					if (AutoRoutine != null)
+						StopCoroutine(AutoRoutine);
 				}
 			}
 			else
 			{
-				if (DialogueRuntimeData.DialogueAsset.DirectTo.Enabled)
+				Debug.Log("Finishing Text.");
+				_ = DialogueEventSystem.TriggerEvent("FinishText");
+			}
+		}
+		public void OnSkip(InputAction.CallbackContext ctx)
+		{
+			//skip dialogue
+			if (!DiaRunData.InDialog || DiaRunData.InMenu || !DiaRunData.Advance)
+				return;
+
+			if (DiaRunData.dialogueState != DiaRunData.DialogueState.Skip)
+			{
+				DiaRunData.SetDialogueState(DiaRunData.DialogueState.Skip);
+				AutoRoutine = StartCoroutine(AutoCoroutine(SkipWaitTime, true));
+			}
+			else
+			{
+				DiaRunData.SetDialogueState(DiaRunData.DialogueState.Normal);
+				if (AutoRoutine != null)
+					StopCoroutine(AutoRoutine);
+			}
+		}
+
+		private async void StartDialogue(Dialogue dialogueAsset)
+		{
+			Debug.Log("DREditor (DialoguePlayer): Starting Dialogue.");
+
+			if (DiaRunData.DialogueAsset.StartEvents.Count > 0)
+			{
+				DiaRunData.Advance = false;
+				Debug.Log("DREditor (DialoguePlayer): Triggering Start Events.");
+				var diaevents = DiaRunData.DialogueAsset.StartEvents.Select(ev => ((IDialogueEvent)ev).TriggerEvent());
+				await Task.WhenAll(diaevents);
+				DiaRunData.Advance = true;
+			}
+
+			switch (dialogueAsset.DialogueMode)
+			{
+				case BoxMode.Normal: //Normal
+					//if (dialogueAsset.ShowDialoguePanel) // With Dialogue Panels
+					//{
+					//	SetPanelsActive(true);
+					//}
+					//else // Without Dialogue Panels
+					//{
+						await DialogueEventSystem.TriggerEvent("LinePass", DiaRunData.CurrentLineIndex);
+					//}
+					break;
+				case BoxMode.CG: //CG - without Dialogue Panels
+					await DialogueEventSystem.TriggerEvent("LinePass", DiaRunData.CurrentLineIndex);
+					break;
+				default:
+					Debug.Log("DREditor (DialoguePlayer): Unable to identify dialogue mode. Defaulting to No Panel.");
+					await DialogueEventSystem.TriggerEvent("LinePass", DiaRunData.CurrentLineIndex);
+					break;
+			}
+		}
+
+		[DialogueEvent("ContinueDialogue")]
+		public void ContinueDialogue()
+		{
+			var asset = DiaRunData.DialogueAsset;
+
+			if (asset == null)
+			{
+                _ = DialogueEventSystem.TriggerEvent("EndDialogue");
+                return;
+            }
+
+			DiaRunData.CurrentLineIndex++;
+
+			if (DiaRunData.CurrentLineIndex <= DiaRunData.DialogueLength - 1)
+			{
+				//if (DiaRunData.DialogueAsset.DialogueMode == BoxMode.Normal)
+				//	SetPanelsActive(true);
+
+				ProcessLine(DiaRunData.CurrentLineIndex);
+
+				//skip/wait autoadvance waittime
+				SetAutoAdvance();
+			}
+			else
+			{
+				if (asset.DirectTo.Enabled)
 				{
 					DirectTo();
-
-					if (DialogueRuntimeData._auto && !DialogueRuntimeData._currentLine.Text.Contains("[WAIT]"))
-					{
-						AutoC = StartCoroutine(AutoCoroutine(AutoWaitTime));
-					}
-					else if (DialogueRuntimeData._skip && !DialogueRuntimeData._currentLine.Text.Contains("[WAIT]"))
-					{
-						AutoC = StartCoroutine(AutoCoroutine(SkipWaitTime));
-					}
+					SetAutoAdvance();
 				}
-				else if (DialogueRuntimeData.DialogueAsset.Choices.Count != 0)
+				else if (asset.Choices.Count != 0)
 				{
 					//Insert Choice code here.
-				}
+					DiaRunData.Advance = false;
+					_ = DialogueEventSystem.TriggerEvent("ShowChoices", asset.Choices);
+                }
 				else
 				{
 					EndDialogue();
@@ -276,171 +192,128 @@ namespace DREditor.Dialogues
 			}
 		}
 
-		private void ProcessLine(object _DPlinenum)
+		[DialogueEvent("LinePass")]
+		public async void ProcessLine(int lineIndex)
 		{
-			bool _firstLine = false;
-			DialogueRuntimeData._currentLine = DialogueRuntimeData.DialogueAsset.Lines[(int)_DPlinenum];
-
-			string charname = "";
-			Sprite nameplate = null;
-
-			if (DialogueRuntimeData._currentLine.Speaker != null)
+			Line line;
+			try
 			{
-				charname = DialogueRuntimeData._currentLine.Speaker.FirstName + " " + DialogueRuntimeData._currentLine.Speaker.LastName;
-				nameplate = DialogueRuntimeData._currentLine.Speaker.Nameplate;
+				line = DiaRunData.CurrentLine = DiaRunData.DialogueAsset.Lines[(int)lineIndex];
+			}
+			catch
+			{
+				return;
+			}
 
-				Debug.Log("DREditor (DialoguePlayer): Processing " + charname + "'s line.");
-				if ((int)DialogueRuntimeData.DialogueAsset.DialogueMode != 1 && !PropMode)
-				{
-					CurrentCharacter = GameObject.Find(charname);
-					//DRSB = CurrentCharacter.GetComponent<DRSpriteBillboard>();
-					//DRBP = CurrentCharacter.GetComponent<DRBillboardProperties>();
-				}
+			if (line.Speaker != null)
+			{
+				string charname = line.Speaker.FirstName + " " + line.Speaker.LastName;
+
+				Debug.Log("DREditor (DialoguePlayer): Processing " + charname + $"'s line. \"{line.Text}\"");
 			}
 
 			//Enable DialogueBox
-			if (SayBox.gameObject.activeSelf == false)
-			{
-				SayBox.gameObject.SetActive(true);
-				_firstLine = true;
-			}
+			//SetSayboxActive(true);
 
 			//Voices
-			if (DialogueRuntimeData._currentLine.VoiceSFX != null && !DialogueRuntimeData._skip)
+			if (line.VoiceSFX != null && !DiaRunData.OnSkip)
 			{
-				DialogueEventSystem.TriggerEvent("PlayVoice", DialogueRuntimeData._currentLine.VoiceSFX);
+				_ = DialogueEventSystem.TriggerEvent("PlayVoice", DiaRunData.CurrentLine.VoiceSFX);
 			}
 
 			//SFX
-			if (DialogueRuntimeData._currentLine.SFX.Count > 0 && !DialogueRuntimeData._skip)
+			if (line.SFX.Count > 0 && !DiaRunData.OnSkip)
 			{
-				foreach (AudioClip aud in DialogueRuntimeData._currentLine.SFX)
+				foreach (AudioClip aud in DiaRunData.CurrentLine.SFX)
 				{
-					if (aud != null) DialogueEventSystem.TriggerEvent("PlaySFX", aud);
-				}
-			}
-
-			//Dialogue Events
-			if (DialogueRuntimeData._currentLine.DiaEvents.Count > 0)
-			{
-				for (int d = 0; d < DialogueRuntimeData._currentLine.DiaEvents.Count; d++)
-				{
-					DialogueRuntimeData._currentLine.DiaEvents[d].TriggerDialogueEvent();
+					if (aud != null)
+						_ = DialogueEventSystem.TriggerEvent("PlaySFX", aud);
 				}
 			}
 
 			//Sprites
-			if (DialogueRuntimeData._currentLine.Expression?.Sprite != null)
+			if (line.Expression?.Sprite != null)
 			{
-                DialogueEventSystem.TriggerEvent("ChangeExpression", (DialogueRuntimeData._currentLine.Speaker.FullName(false), DialogueRuntimeData._currentLine.Expression?.Sprite));
-				//if (DRSB) DRSB.ChangeExpression(DialogueHandler._currentLine.Expression?.Sprite);
+				_ = DialogueEventSystem.TriggerEvent("ChangeExpression", (line.Speaker.FullName(false), line.Expression?.Sprite));
 			}
+
 
 			//If there's no text inside the line, just do the dialogue events and automatically go to the next line.
-			if (DialogueRuntimeData._currentLine.Text == "")
+			if (line.Text == "")
 			{
-				ContinueDialogue();
+                _ = Task.WhenAll(line.DiaEvents.Select(ev => ((IDialogueEvent)ev).TriggerEvent()));
+                ContinueDialogue();
 				return;
 			}
-			else if (DialogueRuntimeData._currentLine.Text.Contains("[WAIT]"))
+			else if (line.Text.Contains("[WAIT]"))
 			{
+				if (line.DiaEvents.Count > 0)
+				{
+                    DiaRunData.Advance = false;
+                    Debug.Log("Evoking [WAIT] Dialogue Events");
+					await Task.WhenAll(line.DiaEvents.Select(ev => ((IDialogueEvent)ev).TriggerEvent()));
+					Debug.Log("Continuing Dialogue");
+                    DiaRunData.Advance = true;
+                    ContinueDialogue();
+                }
 				return;
 			}
 
-			//Dialogue Text
-			if (DialogueRuntimeData._currentLine.AliasNumber > 0 && DialogueRuntimeData._currentLine.Speaker != null)
+			//Dialogue Events
+			if (line.DiaEvents.Count > 0)
 			{
-				charname = DialogueRuntimeData._currentLine.Speaker.Aliases[DialogueRuntimeData._currentLine.AliasNumber - 1].Name;
-				nameplate = DialogueRuntimeData._currentLine.Speaker.Aliases[DialogueRuntimeData._currentLine.AliasNumber - 1].Nameplate;
-			}
+				Debug.Log("Evoking Dialogue Events");
+				await Task.WhenAll(line.DiaEvents.Select(ev => ((IDialogueEvent)ev).TriggerEvent()));
+            }
 
-			SayBox.UseText(charname, nameplate, DialogueRuntimeData._currentLine.Text, _firstLine);
+            DiaRunData.Advance = true;
 
-			//Pass Dialogue Lines to a Backlog File
-			if (DialogueRuntimeData.BLFile) DialogueRuntimeData.BLFile.AddLine(DialogueRuntimeData._currentLine.Speaker, DialogueRuntimeData._currentLine.Text, DialogueRuntimeData._currentLine.VoiceSFX);
+            //Dialogue Text
+			_ = DialogueEventSystem.TriggerEvent<Line>("PrintDialogue", line);
+
+			//Pass Dialogue Line to history
+			DiaRunData.AddHistory(line);
 		}
 
 		private void EndDialogue()
 		{
+			(bool, CharacterSpot) panel = new(false, null);
+
 			Debug.Log("DREditor (DialoguePlayer): Ending Dialogue");
 
-			CurrentMainCamera.enabled = true;
-			DialogueRuntimeData._currentLineNum = 0;
-			DialogueRuntimeData._dialogueLength = 0;
+			DiaRunData.EndDialogue();
 
-			DialogueRuntimeData.Advance = false;
-			DialogueRuntimeData.Skippable = false;
+			SetPanelsActive(false);
+			SetSayboxActive(false);
 
-			DialogueRuntimeData._skip = false;
-			DialogueRuntimeData._auto = false;
-
-			if (!DiaPanels || DiaPanels.activeSelf == false)
-			{
-				DialogueRuntimeData.InDialog = false;
-				SayBox.gameObject.SetActive(false);
-				StartCoroutine(Waiting());
-				DialogueEventSystem.TriggerEvent("DisableCharacterHighlight");
-			}
-			else
-			{
-				DialogueEventSystem.TriggerEvent("DiaPanelTerminate");
-				SayBox.gameObject.SetActive(false);
-			}
-
-			CurrentCharacter = null;
-
-			DialogueEnded?.Invoke();
+			//CurrentCharacter = null;
 			Resources.UnloadUnusedAssets();
 		}
 
 		private void DirectTo()
 		{
-			SayBox.gameObject.SetActive(false);
+			var directTo = DiaRunData.DialogueAsset.DirectTo;
 
-			DialogueRuntimeData._currentLineNum = DialogueRuntimeData.DialogueAsset.DirectTo.NewDialogueIndex;
-			DialogueRuntimeData.DialogueAsset = DialogueRuntimeData.DialogueAsset.DirectTo.NewDialogue;
-
-			DialogueRuntimeData._dialogueLength = DialogueRuntimeData.DialogueAsset.Lines.Count;
-
-			switch ((int)DialogueRuntimeData.DialogueAsset.DialogueMode)
-			{
-				case 0:
-					SayBox = SayBoxManager.DialogueBox.GetComponent<DRDialogueBox>();
-					break;
-				case 1:
-					SayBox = SayBoxManager.DialogueBox_CG.GetComponent<DRDialogueBox>();
-					break;
-				default:
-					SayBox = SayBoxManager.DialogueBox.GetComponent<DRDialogueBox>();
-					break;
-			}
-
-			SayBox.gameObject.SetActive(true);
-
-			EnableDiaPanels();
-			ProcessLine(DialogueRuntimeData._currentLineNum);
+			DiaRunData.ContinueWithNewDialogue(directTo.NewDialogue);
+			ProcessLine(DiaRunData.CurrentLineIndex);
 		}
 
-		private IEnumerator Waiting()
+		private IEnumerator AutoCoroutine(float WaitTime, bool forceTime = false)
 		{
-			yield return new WaitForSeconds(0.1f);
-			if (DRCursor) DRCursor.SetActive(true);
-			yield break;
-		}
+			float _linelength = DiaRunData.CurrentLine.Text.Length;
+			float _waitTime = WaitTime;
 
-		private IEnumerator AutoCoroutine(float WaitTime)
-		{
-			float _linelength = DialogueRuntimeData._currentLine.Text.Length;
-			float _waitTime;
-
-			if (WaitTime >= 0.5f)
+			if (!forceTime)
 			{
-				_waitTime = (_linelength * 0.05f * 2f) + WaitTime;
-				_waitTime = Mathf.Clamp(_waitTime, 2f, 100f);
-			}
-			else
-			{
-				_waitTime = WaitTime * Time.deltaTime * 50f;
+				if (WaitTime >= 0.5f)
+				{
+					_waitTime = (_linelength * 0.05f * 2f) + WaitTime;
+					_waitTime = Mathf.Clamp(_waitTime, 2f, 100f);
+				}
+				else
+				{
+					_waitTime = WaitTime * Time.deltaTime * 50f;
+				}
 			}
 
 			Debug.Log($"Dialogue will wait for {_waitTime} seconds.");
@@ -451,26 +324,80 @@ namespace DREditor.Dialogues
 			yield break;
 		}
 
-		private void EnableDiaPanels()
+		//private async Task AutoCoroutine(float WaitTime)
+		//{
+		//	float _linelength = DiaRunData.CurrentLine.Text.Length;
+		//	float _waitTime;
+
+		//	if (WaitTime >= 0.5f)
+		//	{
+		//		_waitTime = (_linelength * 0.05f * 2f) + WaitTime;
+		//		_waitTime = Mathf.Clamp(_waitTime, 2f, 100f);
+		//	}
+		//	else
+		//	{
+		//		_waitTime = WaitTime * Time.deltaTime * 50f;
+		//	}
+
+		//	Debug.Log($"Dialogue will wait for {_waitTime} seconds.");
+		//	await Awaitable.WaitForSecondsAsync(_waitTime);
+
+		//	ContinueDialogue();
+		//}
+
+		private void SetPanelsActive(bool active)
 		{
-			if (DiaPanels.activeSelf == false && (int)DialogueRuntimeData.DialogueAsset.DialogueMode == 0 && DialogueRuntimeData.DialogueAsset.ShowDialoguePanel)
+			_ = DialogueEventSystem.TriggerEvent("PanelActive", active);
+		}
+
+		private void SetSayboxActive(bool active) => 
+			_ = DialogueEventSystem.TriggerEvent<bool>("SetSayboxActive", active);
+
+		private void SetAutoAdvance()
+		{
+			if (DiaRunData.CurrentLine.Text.Contains("[WAIT]"))
+				return;
+
+			var state = DiaRunData.dialogueState;
+			float waitTime;
+			bool forceTime = false;
+
+			switch (state)
 			{
-				DiaPanels.GetComponent<DRDialoguePanels>().Immediate = true;
-				CurrentMainCamera.enabled = false;
-				DiaPanels.SetActive(true);
+				case DiaRunData.DialogueState.Skip:
+					waitTime = SkipWaitTime;
+					forceTime = true;
+					break;
+				case DiaRunData.DialogueState.Auto:
+					waitTime = AutoWaitTime;
+					break;
+				default:
+					waitTime = 1f;
+					return;
 			}
+
+			AutoRoutine = StartCoroutine(AutoCoroutine(waitTime, forceTime));
 		}
 
 		//Dialogue Events
-
 		/// <summary>
 		/// Dialogue Event: Show a CG on the screen.
 		/// </summary>
 		/// <param name="values"></param>
-		private void ShowCG(object values)
+		[DialogueEvent("ShowCG")]
+		private async Task ShowCG(GameObject values)
 		{
-			GameObject _CG = (GameObject)values;
-			Instantiate(_CG);
+			//GameObject _CG = (GameObject)values;
+
+			if (currentCG != null)
+				Destroy(currentCG);
+
+			currentCG = Instantiate(values);
+
+			if (currentCG.TryGetComponent<ICG>(out var cg))
+			{
+				await cg.Initialize();
+			}
 		}
 
 		/// <summary>
@@ -479,38 +406,29 @@ namespace DREditor.Dialogues
 		/// <param name="values"></param>
 		private void LeaveSequence(object values = null)
 		{
-			CharacterSpot _cs = CurrentCharacter.transform.parent.parent.GetComponent<CharacterSpot>();
-			DialogueRuntimeData.Advance = false;
+			//CharacterSpot _cs = CurrentCharacter.transform.parent.parent.GetComponent<CharacterSpot>();
+			DiaRunData.Advance = false;
 
-			DialogueRuntimeData._skip = false;
-			DialogueRuntimeData._auto = false;
+			DiaRunData.SetDialogueState(DiaRunData.DialogueState.Normal);
 
-			if (!DiaPanels || DiaPanels.activeSelf == false)
-			{
-				SayBox.gameObject.SetActive(false);
-				StartCoroutine(Waiting());
-				DialogueEventSystem.TriggerEvent("DisableCharacterHighlight");
-			}
-			else
-			{
-				StartCoroutine(_LeaveSequence(_cs));
-				SayBox.gameObject.SetActive(false);
-			}
+			SetSayboxActive(true);
+			SetPanelsActive(false);
+
+			//StartCoroutine(Waiting());
+			//StartCoroutine(LeaveSequenceRoutine(_cs));
 		}
-		private IEnumerator _LeaveSequence(CharacterSpot _cs)
+		private IEnumerator LeaveSequenceRoutine(CharacterSpot _cs)
 		{
-			CurrentMainCamera.enabled = true;
-			DialogueEventSystem.TriggerEvent("PanelActive", (false, _cs.CurrentCharacter));
-
 			yield return new WaitForSeconds(3f);
 
 			_cs.Disable();
 
 			yield return new WaitForSeconds(1f);
 
-			DialogueRuntimeData.Advance = true;
 			ContinueDialogue();
 			yield return null;
 		}
+
+
 	}
 }

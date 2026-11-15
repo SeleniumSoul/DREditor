@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using DREditor.Dialogues.Events;
+using DREditor.Dialogues;
+using System.Threading.Tasks;
 
 public class UIFade : MonoBehaviour
 {
@@ -10,51 +12,57 @@ public class UIFade : MonoBehaviour
     {
         get
         {
-            return (_OnTransition || _ScreenCovered);
+            return (_OnTransition || screenCovered);
         }
     }
     public Image FadeCover;
 
-    private static bool _ScreenCovered = false;
+    private static bool screenCovered = false;
     private static bool _OnTransition = false;
-    private float speed;
 
     private void OnEnable()
     {
-        DialogueEventSystem.StartListening("FadeToBlack", FadeToBlack);
-        DialogueEventSystem.StartListening("ScreenFlash", Flash);
-        DialogueEventSystem.StartListening("FadeOut", FadeOut);
+        DialogueEventSystem.RegisterEvents(this);
     }
 
     private void OnDisable()
     {
-        DialogueEventSystem.StopListening("FadeToBlack", FadeToBlack);
-        DialogueEventSystem.StopListening("ScreenFlash", Flash);
-        DialogueEventSystem.StopListening("FadeOut", FadeOut);
+        DialogueEventSystem.DeregisterEvents(this);
     }
 
-    public void FadeToBlack(object FTBValue)
+    [DialogueEvent("FadeToBlack")]
+    public async Task FadeToBlack(float speed)
     {
-        _ScreenCovered = true;
-        speed = (float)FTBValue;
-        
-        if (!_OnTransition) StartCoroutine(FadeAnimation(speed, 1f, Color.black));
-        else
+        //var speed = (float)FTBValue;
+        await Fade(true, speed, Color.black);
+    }
+
+    [DialogueEvent("FadeOut")]
+    public async Task FadeOut(float speed)
+    {
+        //var speed = (float)FTBValue;
+        await Fade(false, speed, Color.black);
+    }
+
+    public async Task Fade(bool enable, float fadeTime, Color color)
+    {
+        float targetAlpha = enable ? 1f : 0f;
+
+        screenCovered = enable;
+
+        if (fadeTime <= 0f)
         {
-            StopCoroutine("FadeAnimation");
-            StartCoroutine(FadeAnimation(speed, 1f, Color.black));
+            FadeCover.color = new Color(color.r, color.g, color.b, targetAlpha);
+            return;
         }
-    }
 
-    public void FadeOut(object FTBValue = null)
-    {
-        _ScreenCovered = false;
-        speed = (float)FTBValue;
-        if (!_OnTransition) StartCoroutine(FadeAnimation(speed, 0f, Color.black));
+        //TODO: Use await here.
+        if (!_OnTransition) 
+            StartCoroutine(FadeAnimation(fadeTime, targetAlpha, color));
         else
         {
             StopCoroutine("FadeAnimation");
-            StartCoroutine(FadeAnimation(speed, 0f, Color.black));
+            StartCoroutine(FadeAnimation(fadeTime, targetAlpha, color));
         }
     }
 

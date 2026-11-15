@@ -3,6 +3,8 @@
 using System;
 using UnityEngine;
 using DREditor.Trial;
+using System.Threading.Tasks;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -28,9 +30,9 @@ namespace DREditor.Dialogues.Events
 		public bool _ShowHelp = false;
 		public DTBTuple DTBValue;
 
-		public void TriggerDialogueEvent()
+		public async Task TriggerEvent()
 		{
-			DialogueEventSystem.TriggerEvent("TruthBulletDisplay", DTBValue);
+			await DialogueEventSystem.TriggerEvent("TruthBulletDisplay", DTBValue);
 		}
 
 #if UNITY_EDITOR

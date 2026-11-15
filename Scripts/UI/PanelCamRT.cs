@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering;
@@ -8,12 +6,17 @@ using UnityEngine.Rendering;
 public class PanelCamRT : MonoBehaviour
 {
 	[SerializeField] private bool Screenshot;
-	[SerializeField] private Camera _PanelCam;
+	[SerializeField] private Camera PanelCamera;
 
 	[Header("Render Texture")]
-    [Range(0.2f, 2f)] public float RenderResolution = 1f;
-    [SerializeField] private bool DynamicResolution = true;
+	[Range(0.2f, 2f)] public float RenderResolution = 1f;
+	[SerializeField] private bool DynamicResolution = true;
 	[SerializeField] FilterMode filterMode = FilterMode.Bilinear;
+
+	//Stupid hack because this script is blind af
+	[SerializeField] private DRDialoguePanels panels;
+
+	private Camera mainCamera;
 	private RenderTexture RT;
 	private RectTransform canvasRect;
 	private RawImage rawImage;
@@ -23,29 +26,48 @@ public class PanelCamRT : MonoBehaviour
 		canvasRect = GetComponent<RectTransform>();
 		rawImage = GetComponent<RawImage>();
 
-        RT = new RenderTexture((int)(canvasRect.rect.width * RenderResolution), (int)(canvasRect.rect.height * RenderResolution), 32)
-        {
-            useDynamicScale = DynamicResolution,
-            filterMode = filterMode
-        };
-
-        _PanelCam.targetTexture = RT;
-        rawImage.texture = RT;
-    }
+		mainCamera = panels.MainCam;
+	}
 
 	public void OnEnable()
 	{
-        if (!Screenshot) return;
+		if (Screenshot)
+		{
+			PanelCamera.transform.SetPositionAndRotation(mainCamera.transform.position, mainCamera.transform.rotation);
+			CreateRT(true);
+			UniversalRenderPipeline.SingleCameraRequest request = new();
 
-        _PanelCam.transform.SetPositionAndRotation(Camera.main.transform.position, Camera.main.transform.rotation);
-        UniversalRenderPipeline.SingleCameraRequest request = new();
+			if (RenderPipeline.SupportsRenderRequest(PanelCamera, request))
+			{
+				request.destination = RT;
+				RenderPipeline.SubmitRenderRequest(PanelCamera, request);
+			}
+		}
+		else
+		{
+			CreateRT(false);
+			PanelCamera.enabled = true;
+		}
+	}
 
-        if (RenderPipeline.SupportsRenderRequest(_PanelCam, request))
-        {
-            request.destination = RT;
-            RenderPipeline.SubmitRenderRequest(_PanelCam, request);
-        }
+	public void OnDisable()
+	{
+		PanelCamera.enabled = false;
+	}
 
-        rawImage.texture = RT;
-    }
+	private void CreateRT(bool fullscreen)
+	{
+		var resolution = fullscreen ?
+			new Vector2Int(Screen.width, Screen.height) :
+			new Vector2Int((int)(canvasRect.rect.width * RenderResolution), (int)(canvasRect.rect.height * RenderResolution));
+
+		RT = new RenderTexture(resolution.x, resolution.y, 32)
+		{
+			useDynamicScale = DynamicResolution,
+			filterMode = filterMode
+		};
+
+		PanelCamera.targetTexture = RT;
+		rawImage.texture = RT;
+	}
 }

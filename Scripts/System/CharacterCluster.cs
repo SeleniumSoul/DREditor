@@ -2,32 +2,38 @@ using System.Collections.Generic;
 using UnityEngine;
 using DREditor.Characters;
 using UnityEditor;
+using System.Threading.Tasks;
 
 public class CharacterCluster : MonoBehaviour
 {
-    [SerializeField] private CharacterSpot[] TemporarySpots;
+    //[SerializeField] private CharacterSpot[] TemporarySpots;
     [SerializeField] private CharacterSpot[] CharacterSpots;
+    [SerializeField] private float ClusterLoadDelay = 0.3f;
 
     private List<GameObject> tempchara = new();
 
-    public void Start()
+    public async Task SetupCluster(int id, CharacterClusterSetup setup)
     {
-        
-    }
+        if (setup.placements.Length > CharacterSpots.Length)
+            Debug.LogWarning("There are more characters needed to load than the available spots! Not all characters can be loaded!");
 
-    public void LoadInitialCharacters(int id, CharacterClusterSetup setup)
-    {
+        List<Task> spotTasks = new();
+
         for (int i = 0; i < setup.placements.Length; i++)
         {
-            CharacterSpots[i].LoadCharacter(id, setup.placements[i].character, setup.placements[i].dialogues, false);
+            spotTasks.Add(CharacterSpots[i].LoadCharacter(id, setup.placements[i].character, setup.placements[i].dialogues, false));
+            await Awaitable.WaitForSecondsAsync(ClusterLoadDelay);
         }
+
+        await Task.WhenAll(spotTasks);
     }
 
-    public void LoadTempCharacter(int id, Character character)
+    public async void LoadTempCharacter(int id, Character character)
     {
         for (int i = 0; i < CharacterSpots.Length; i++)
         {
-            CharacterSpots[i].LoadCharacter(id, character, null, true);
+            _ = CharacterSpots[i].LoadCharacter(id, character, null, true);
+            await Task.Delay(500);
         }
     }
 
@@ -49,9 +55,15 @@ public class CharacterCluster : MonoBehaviour
             normal = new GUIStyleState() { textColor = Color.white },
         };
 
-        for (int tmp = 0; tmp < TemporarySpots.Length; tmp++) {
-            Handles.Label(TemporarySpots[tmp].transform.position, $"T{tmp}", labelStyle);
-        }
+        //if (TemporarySpots == null)
+        //    return;
+
+        //for (int tmp = 0; tmp < TemporarySpots.Length; tmp++) {
+        //    Handles.Label(TemporarySpots[tmp].transform.position, $"T{tmp}", labelStyle);
+        //}
+
+        if (CharacterSpots == null)
+            return;
 
         for (int sp = 0; sp < CharacterSpots.Length; sp++)
         {

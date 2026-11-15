@@ -1,263 +1,238 @@
 ﻿//Dialogue Panel script by SeleniumSoul for DR:Distrust
 
-using System;
-using System.Collections;
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.SceneManagement;
-using DREditor.Characters;
+using DREditor;
 using DREditor.Dialogues;
 using DREditor.Dialogues.Events;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// UI Script that handles the comicstrip-like view when in a dialogue.
 /// </summary>
 public class DRDialoguePanels : MonoBehaviour
 {
-	[SerializeField] private GameObject[] PanelCameras = new GameObject[3];
+	[SerializeField] private DRPanelCamera[] PanelCameras;
 	[SerializeField] private float TalkFOV;
 	[SerializeField] private Material BGFilterMaterial;
-	[SerializeField] private Material Opacity;
 	[SerializeField] private UniversalRendererData RenderData;
-	[SerializeField] public bool Immediate;
+	[SerializeField] private bool Immediate;
 
-	private Animator Panels;
-	private GameObject[] Focused;
-	private Camera MainCam;
-
-	private CanvasGroup PanelCG;
-
-	private Coroutine CameraLerp;
+    public Camera MainCam { get; private set; }
+    private Animator panelAnimator;
+	private CanvasGroup panelCanvasGroup;
 
 	private void Awake()
 	{
 		SceneManager.sceneLoaded += Reinitialize;
-		Panels = GetComponent<Animator>();
-		PanelCG = GetComponent<CanvasGroup>();
-    }
+		panelAnimator = GetComponent<Animator>();
+		panelCanvasGroup = GetComponent<CanvasGroup>();
 
-	private void Start()
+		DialogueEventSystem.RegisterEvents(this);
+		DialogueRuntimeData.DialogueEnded += () => _ = OnPanelActive(false);
+		gameObject.SetActive(false);
+	}
+
+	private void OnDestroy()
 	{
-        //Subscribe to Events here
-        DialogueEventSystem.StartListening("ChangeCharacterFocus", OnChangeCharacterFocus);
-        DialogueEventSystem.StartListening("ChangeWindowPattern", OnChangeWindowPattern);
-        DialogueEventSystem.StartListening("DiaPanelTerminate", OnDiaPanelTerminate);
+        SceneManager.sceneLoaded -= Reinitialize;
+        DialogueEventSystem.DeregisterEvents(this);
+	}
 
-        DialogueEventSystem.StartListening("PanelActive", OnPanelActive);
-
-        //DialoguePlayer.current.DiaPanels = gameObject;
-		Focused = new GameObject[PanelCameras.Length];
-
-		foreach (GameObject n in PanelCameras)
-		{
-			n.GetComponent<Camera>().enabled = false;
-		}
-
-        gameObject.SetActive(false);
-    }
-    private void OnDestroy()
+	private void Reinitialize(Scene load, LoadSceneMode mode)
+	{
+		MainCamNullCheck();
+	}
+    private bool MainCamNullCheck()
     {
-        DialogueEventSystem.StopListening("ChangeCharacterFocus", OnChangeCharacterFocus);
-        DialogueEventSystem.StopListening("ChangeWindowPattern", OnChangeWindowPattern);
-        DialogueEventSystem.StopListening("DiaPanelTerminate", OnDiaPanelTerminate);
+        try
+        {
+            if (MainCam == null)
+                MainCam = Camera.main;
 
-        DialogueEventSystem.StopListening("PanelActive", OnPanelActive);
+            return (MainCam);
+        }
+        catch
+        {
+            return false;
+        }
     }
-
-    private void Reinitialize(Scene load, LoadSceneMode mode)
+    private GameObject GetFocusTarget(string id)
     {
-		CamNullCheck();
-    }
+        var target = new List<GameObject>();
 
-	private bool CamNullCheck()
-	{
-		try
-		{
-			if (MainCam == null)
-				MainCam = Camera.main;
+        target.AddRange(GameObject.FindGameObjectsWithTag("Character"));
+        target.AddRange(GameObject.FindGameObjectsWithTag("Prop"));
 
-			return (MainCam);
-		}
-		catch
-		{
-			return false;
-		}
-	}
-
-	private void OnEnable()
-	{
-        MainCam = Camera.main;
-        foreach (GameObject n in PanelCameras)
-		{
-			if (MainCam)
-			{
-				n.transform.SetParent(MainCam.transform);
-				n.transform.SetPositionAndRotation(MainCam.transform.position, MainCam.transform.rotation);
-				n.GetComponent<Camera>().fieldOfView = MainCam.fieldOfView;
-				n.GetComponent<Camera>().enabled = true;
-			}
-		}
-
-		BGInitialize();
-	}
-
-    private void BGInitialize()
-	{
-		Panels.SetBool("Immediate", Immediate);
-        BGFilter(true);
-    }
-
-	private void OnPanelActive(object value)
-    {
-		var (open, chara) = ((bool open, CharacterSpot chara))value;
-		gameObject.SetActive(open);
-
-		for (int i = 0; i < Focused.Length; i++)
-		{
-			if (Focused[i] == chara.CurrentCharacter)
-			{
-				ReturnCamToOrigParent(i);
-			}
-		}
-    }
-
-	private void OnDiaPanelTerminate(object value)
-	{
-		Immediate = false;
-		BGFilter(false, true, true);
-	}
-
-	private void ReturnCamToOrigParent()
-	{
-		foreach (GameObject n in PanelCameras)
-		{
-            n.transform.SetParent(transform);
-            n.GetComponent<Camera>().fieldOfView = MainCam.fieldOfView;
-			n.GetComponent<Camera>().enabled = false;
-		}
-	}
-    private void ReturnCamToOrigParent(int index)
-    {
-        PanelCameras[index].transform.SetParent(transform);
-        PanelCameras[index].GetComponent<Camera>().fieldOfView = MainCam.fieldOfView;
-        PanelCameras[index].GetComponent<Camera>().enabled = false;
-    }
-    private void OnChangeWindowPattern(object state)
-	{
-		if (state is CWPTuple _CWPValue)
-		{
-			Debug.Log("DREditor (DialoguePanels): Changing pattern to " + _CWPValue.PatternName);
-			Panels.SetTrigger(_CWPValue.PatternName);
-		}
-
-		else if (state is string _stringstate)
-		{
-			Panels.SetTrigger(_stringstate);
-		}
-
-		else if (state is int _intstate)
-		{
-			Debug.Log("DREditor (DialoguePanels): Triggering ChangePattern with int " + _intstate);
-			Panels.SetTrigger(_intstate);
-		}
-	}
-
-	private GameObject GetFocusTarget(string id)
-	{
-        var characters = GameObject.FindGameObjectsWithTag("Character");
-        var props = GameObject.FindGameObjectsWithTag("Prop");
-
-		foreach (var c in characters)
-		{
-			if (c.TryGetComponent<DRSpriteBillboard>(out DRSpriteBillboard sb))
-			{
-                Debug.Log($"{sb.CharacterName} == {id}");
-                if (sb.CharacterName == id)
-				{
-					Debug.Log("Character Found");
+        foreach (var c in target)
+        {
+            if (c.TryGetComponent<IExaminable>(out IExaminable sb))
+            {
+                if (sb.GetName() == id)
+                {
+                    Debug.Log($"Character {sb.GetName()} found as focus target.");
                     return c;
                 }
             }
-		}
-
-		foreach (var p in props)
-		{
-			if (p.name == id)
-				return p;
-		}
+        }
 
         Debug.Log("Target not Found");
         return null;
     }
-
-    /// <summary>
-    /// Dialogue Event: Change the focus of the panel camera to the current character.
-    /// </summary>
-    /// <param name="values"></param>
-    private void OnChangeCharacterFocus(object value)
-	{
-        (string ID, int PanelNum, Vector3 CT) convert = (ValueTuple<string, int, Vector3>)value;
-
-        GameObject target = GetFocusTarget(convert.ID);
-        int camNum = convert.PanelNum;
-        Vector3 offsetPosition = convert.CT;
-
-		if (target == null) return;
-        if (target.TryGetComponent<DRBillboardProperties>(out DRBillboardProperties sb))
+    private void ResetAllTriggers()
+    {
+        foreach (var param in panelAnimator.parameters)
         {
-            offsetPosition = sb.CameraPosition + convert.CT;
+            if (param.type == AnimatorControllerParameterType.Trigger)
+            {
+                panelAnimator.ResetTrigger(param.name);
+            }
+        }
+    }
+    private void ReturnCamToOrigParent()
+    {
+        foreach (var pc in PanelCameras)
+        {
+            pc.transform.SetParent(transform);
+            pc.GetComponent<Camera>().fieldOfView = MainCam.fieldOfView;
+        }
+    }
+
+    private void OnEnable()
+	{
+		//foreach (var pc in PanelCameras)
+		//{
+		//	var cam = pc.GetComponent<Camera>();
+
+		//	if (MainCamNullCheck())
+		//	{
+		//		pc.transform.SetPositionAndRotation(MainCam.transform.position, MainCam.transform.rotation);
+		//		cam.fieldOfView = MainCam.fieldOfView;
+		//	}
+		//}
+
+		//MainCam.enabled = false;
+		//BGInitialize();
+	}
+
+	private void OnDisable()
+	{
+		if (MainCamNullCheck())
+			MainCam.enabled = true;
+	}
+
+	//private void BGInitialize()
+	//{
+	//	foreach (var pc in PanelCameras)
+	//	{
+	//		var cam = pc.GetComponent<Camera>();
+
+	//		if (MainCamNullCheck())
+	//		{
+	//			pc.transform.SetPositionAndRotation(MainCam.transform.position, MainCam.transform.rotation);
+	//			cam.fieldOfView = MainCam.fieldOfView;
+	//		}
+	//	}
+
+	//	MainCam.enabled = false;
+
+	//	panelAnimator.SetBool("Immediate", Immediate);
+	//	BGFilter(true);
+	//}
+
+	[DialogueEvent("PanelActive")]
+	public async Task OnPanelActive(bool active)
+	{
+		if (active)
+		{
+            gameObject.SetActive(true);
+            foreach (var pc in PanelCameras)
+            {
+                var cam = pc.GetComponent<Camera>();
+
+                if (MainCamNullCheck())
+                {
+                    pc.transform.SetPositionAndRotation(MainCam.transform.position, MainCam.transform.rotation);
+                    cam.fieldOfView = MainCam.fieldOfView;
+                }
+            }
+
+            MainCam.enabled = false;
+
+            panelAnimator.SetBool("Immediate", Immediate);
+            await BGFilter(true);
+        }
+		else
+		{
+			Immediate = false;
+            await BGFilter(false);
         }
 
-        if (CameraLerp != null)
-            StopCoroutine(CameraLerp);
-
-        //Change color of previous character
-        if (Focused[camNum] && !DialoguePlayer.current.PropMode)
-		{
-			Focused[camNum].GetComponent<DRSpriteBillboard>().Focus(false);
-		}
-
-		Debug.Log("DREditor <color=purple>(DialoguePanels)</color>: Triggering ChangeCamFocus with camera " + camNum + " on " + target.name + " at " + offsetPosition + " position.");
-
-		Focused[camNum] = target;
-		PanelCameras[camNum].transform.SetParent(target.transform);
-
-		if (!DialogueRuntimeData._skip) //If not skipping, lerp.
-        {
-			CameraLerp = StartCoroutine(LerpPos(PanelCameras[camNum], offsetPosition, 0.5f));
-		}
-        else //If skipping, just teleport.
-        {
-			PanelCameras[camNum].GetComponent<Camera>().fieldOfView = TalkFOV;
-			PanelCameras[camNum].transform.localPosition = offsetPosition;
-			PanelCameras[camNum].transform.localRotation = Quaternion.Euler(new Vector3(0f, 180f, 0f));
-		}
-
-		//Change color of character
-		if (!DialoguePlayer.current.PropMode)
-		{
-			Focused[camNum].GetComponent<DRSpriteBillboard>().Focus(true);
-		}
+		//ReturnCamToOrigParent();
+		//for (int i = 0; i < Focused.Length; i++)
+		//{
+		//	if (Focused[i] == chara.CurrentCharacter)
+		//	{
+		//		ReturnCamToOrigParent(i);
+		//	}
+		//}
 	}
-	private IEnumerator LerpPos(GameObject camera, Vector3 position, float speed)
+
+	[DialogueEvent("EndDialogue")]
+	private async Task OnEndDialogue()
 	{
-		Camera cam = camera.GetComponent<Camera>();
-		float InitFOV = cam.fieldOfView;
-		float _StartTime = 0;
+		await BGFilter(false, true);
+	}
 
-		while (_StartTime < speed)
+	[DialogueEvent("ChangeWindowPattern")]
+	private async Task OnChangeWindowPattern(CWPTuple state)
+	{
+		if (!gameObject.activeSelf)
+			await OnPanelActive(true);
+
+		if (state is CWPTuple _CWPValue)
 		{
-			if (!DialoguePlayer.current.PropMode)
-				cam.fieldOfView = Mathf.Lerp(InitFOV, TalkFOV, (_StartTime / speed * 2f));
+			Debug.Log("DREditor (DialoguePanels): Changing pattern to " + _CWPValue.PatternName);
 
-			camera.transform.localPosition = Vector3.Lerp(camera.transform.localPosition, position, (_StartTime / speed));
-			camera.transform.localRotation = Quaternion.Lerp(camera.transform.localRotation, Quaternion.Euler(new Vector3(0f, 180f, 0f)), (_StartTime / speed));
-			_StartTime += Time.deltaTime;
-			yield return new WaitForEndOfFrame();
+			//panelAnimator.CrossFade(_CWPValue.PatternName, 0.1f);
+            panelAnimator.SetTrigger(_CWPValue.PatternName);
+
+            //while (panelAnimator.IsInTransition(0) == false)
+                //await Task.Yield();
+
+            while (panelAnimator.IsInTransition(0))
+                await Task.Yield();
+        }
+    }
+
+	/// <summary>
+	/// Dialogue Event: Change the focus of the panel camera to the current character.
+	/// </summary>
+	/// <param name="values"></param>
+	[DialogueEvent("ChangeCharacterFocus")]
+	private void OnChangeCharacterFocus((string ID, int PanelNum, Vector3 CT, bool immediate) value)
+	{
+		//(string ID, int PanelNum, Vector3 CT, bool immediate) convert = (ValueTuple<string, int, Vector3, bool>)value;
+
+		GameObject target = GetFocusTarget(value.ID);
+		int camNum = value.PanelNum;
+		bool cameraActive = PanelCameras[camNum].GetComponent<Camera>().isActiveAndEnabled;
+
+		if (target == null)
+		{
+			Debug.LogWarning($"Cannot find {value.ID} to focus on!");
+			return;
 		}
-		camera.transform.localPosition = position;
-		camera.transform.localRotation = Quaternion.Euler(new Vector3(0f, 180f, 0f));
+
+		if (DialogueRuntimeData.OnSkip || !cameraActive)
+			PanelCameras[camNum].SwitchFocus(target.transform, true, TalkFOV, value.CT);
+		else
+			PanelCameras[camNum].SwitchFocus(target.transform, value.immediate, TalkFOV, value.CT);
+
 	}
 
 	#region BGFilter - Used to enable/disable the filter of the background
@@ -265,92 +240,179 @@ public class DRDialoguePanels : MonoBehaviour
 	/// Do stuff on the BG capture.
 	/// </summary>
 	/// <param name="active">Set if the BG is active.</param>
-	/// <param name="capdestroy">Destroy the capture.</param>
 	/// <param name="dialogueend">Used only when the dialogue actually ends.</param>
 	/// <param name="value">The speed of the lerps.</param>
-	private void BGFilter(bool active, bool capdestroy = false, bool dialogueend = false, float value = 7f)
-	{
-        if (active)
-		{
-            StartCoroutine(EnableBGFilter());
-        }
-		else
-		{
-            StartCoroutine(DisableBGFilter(value, capdestroy, dialogueend));
-        }
-	}
-	private IEnumerator EnableBGFilter()
-	{
-		DialogueRuntimeData.OnTransition = true;
-		PanelCG.alpha = 1f;
+	//private void BGFilter(bool active, bool dialogueend = false, float value = 7f)
+	//{
+	//	if (active)
+	//	{
+	//		StartCoroutine(EnableBGFilter());
+	//	}
+	//	else
+	//	{
+	//		StartCoroutine(DisableBGFilter(dialogueend));
+	//	}
+	//}
+	//private IEnumerator EnableBGFilter()
+	//{
+	//	DialogueRuntimeData.OnTransition = true;
+	//	panelCanvasGroup.alpha = 1f;
 
-  //      BGFilterMaterial.SetFloat("_Opacity", 0.744f);
-  //      RenderData.rendererFeatures[0].SetActive(true);
-		//if (Panels.GetCurrentAnimatorClipInfo(0).Length > 0)
+	//	//BGFilterMaterial.SetFloat("_Opacity", 0.744f);
+	//	//RenderData.rendererFeatures[0].SetActive(true);
+	//	if (panelAnimator.GetCurrentAnimatorClipInfo(0).Length > 0)
+	//	{
+	//		yield return new WaitForSeconds(panelAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.length);
+	//	}
+
+	//	//DialogueEventSystem.TriggerEvent("LinePass", DialogueRuntimeData.CurrentLineIndex);
+	//	yield break;
+	//}
+	//private IEnumerator DisableBGFilter(bool enddialogue)
+	//{
+	//	DialogueRuntimeData.OnTransition = true;
+	//	ResetAllTriggers();
+	//	panelAnimator.SetTrigger("DialogueEnd");
+	//	yield return new WaitForSeconds(1f);
+
+	//	ReturnCamToOrigParent();
+	//	DialogueEventSystem.TriggerEvent("DisableCharacterHighlight");
+
+	//	//float opacityValue = 0.744f;
+
+	//	//BGFilterMaterial.SetFloat("_Opacity", 0.744f);
+	//	//do
+	//	//{
+	//	//	opacityValue -= value * Time.deltaTime;
+	//	//	BGFilterMaterial.SetFloat("_Opacity", opacityValue);
+	//	//	yield return new WaitForEndOfFrame();
+	//	//} while (opacityValue > 0f);
+	//	//BGFilterMaterial.SetFloat("_Opacity", 0f);
+
+	//	//yield return new WaitForSeconds(0.5f);
+
+	//	//float BGOpacity = 0.744f;
+	//	//do
+	//	//{
+	//	//	BGOpacity -= value * Time.deltaTime;
+	//	//	Opacity.SetFloat("_MainAlpha", BGOpacity);
+	//	//	yield return new WaitForSeconds(0.01f);
+	//	//} while (Opacity.GetFloat("_MainAlpha") > 0f);
+	//	//Opacity.SetFloat("_MainAlpha", 0f);
+	//	//PanelCG.alpha = 0f;
+
+	//	//MainCam.gameObject.SetActive(true);
+
+	//	if (enddialogue)
+	//	{
+	//		DialogueRuntimeData.EndDialogue();
+	//	}
+	//	DialogueRuntimeData.OnTransition = false;
+	//	this.gameObject.SetActive(false);
+	//	yield break;
+	//}
+
+    private async Task BGFilter(bool active, bool dialogueend = false, float value = 7f)
+    {
+        if (active)
+			await EnableBGFilter();
+        else
+			await DisableBGFilter(dialogueend);
+    }
+	private async Task EnableBGFilter()
+	{
+		//DialogueRuntimeData.OnTransition = true;
+		panelCanvasGroup.alpha = 1f;
+		//BGFilterMaterial.SetFloat("_Opacity", 0.744f);
+		//RenderData.rendererFeatures[0].SetActive(true);
+
+		//while (panelAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1)
+		//    await Task.Yield();
+
+		//      if (panelAnimator.GetCurrentAnimatorClipInfo(0).Length > 0)
 		//{
-		//	yield return new WaitForSeconds(Panels.GetCurrentAnimatorClipInfo(0)[0].clip.length);
+		//	await Awaitable.WaitForSecondsAsync(panelAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.length);
 		//}
 
-		DialogueRuntimeData.Advance = true;
-		DialogueEventSystem.TriggerEvent("LinePass", DialogueRuntimeData._currentLineNum);
-		DialogueRuntimeData.OnTransition = false;
-		yield break;
-	}
-	private IEnumerator DisableBGFilter(float value, bool destroycap, bool enddialogue)
-	{
-		DialogueRuntimeData.OnTransition = true;
-		ResetAllTriggers();
-		Panels.SetTrigger("DialogueEnd");
-		yield return new WaitForSeconds(1f);
+		//var stateInfo = panelAnimator.GetCurrentAnimatorStateInfo(0);
+		//      while (stateInfo.normalizedTime < 1f)
+		//      {
+		//	await Task.Yield();
+		//      }
 
-		ReturnCamToOrigParent();
-		DialogueEventSystem.TriggerEvent("DisableCharacterHighlight");
+		// Give the animator one frame to register the state change / transition
+		//await Awaitable.NextFrameAsync();
+
+		// Ensure it's actually in the state and not stuck on a finished normalizedTime of 1.0 from before
+		//AnimatorStateInfo stateInfo = panelAnimator.GetCurrentAnimatorStateInfo(0);
+
+		// Wait until it's finished playing (and ensure it isn't caught in a transition glitch)
+		//while ((stateInfo.normalizedTime < 1f || panelAnimator.IsInTransition(0)))
+		//{
+		//    // If the state hasn't even updated yet, protect against an infinite loop
+		//    if (!panelAnimator.IsInTransition(0) && stateInfo.normalizedTime >= 1f)
+		//        break;
+
+		//    stateInfo = panelAnimator.GetCurrentAnimatorStateInfo(0);
+		//    await Awaitable.NextFrameAsync();
+
+		//}
+		_ = DialogueEventSystem.TriggerEvent("SetSayboxActive", false);
+		await Awaitable.WaitForSecondsAsync(0.3f);
+    }
+	private async Task DisableBGFilter(bool enddialogue)
+	{
+        //DialogueRuntimeData.OnTransition = true;
+        _ = DialogueEventSystem.TriggerEvent("SetSayboxActive", false);
+        ResetAllTriggers();
+		panelAnimator.SetTrigger("DialogueEnd");
+		//await Awaitable.NextFrameAsync();
+
+        //AnimatorStateInfo stateInfo = panelAnimator.GetCurrentAnimatorStateInfo(0);
+        //if (panelAnimator.GetCurrentAnimatorClipInfo(0).Length > 0)
+        //{
+        //}
+        //while (stateInfo.normalizedTime < 1f || panelAnimator.IsInTransition(0))
+        //{
+        //	//await Awaitable.WaitForSecondsAsync(panelAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.length);
+        //	stateInfo = panelAnimator.GetCurrentAnimatorStateInfo(0);
+        //	await Awaitable.NextFrameAsync();
+        //}
+        //ReturnCamToOrigParent();
+
+        await Awaitable.WaitForSecondsAsync(0.5f);
+        _ = DialogueEventSystem.TriggerEvent("DisableCharacterHighlight");
 
 		float opacityValue = 0.744f;
 
-        BGFilterMaterial.SetFloat("_Opacity", 0.744f);
-		do
-		{
-            opacityValue -= value * Time.deltaTime;
-            BGFilterMaterial.SetFloat("_Opacity", opacityValue);
-			yield return new WaitForEndOfFrame();
-		} while (opacityValue > 0f);
-        BGFilterMaterial.SetFloat("_Opacity", 0f);
-
-        //yield return new WaitForSeconds(0.5f);
-
-        //float BGOpacity = 0.744f;
-        //do
-        //{
-        //	BGOpacity -= value * Time.deltaTime;
-        //	Opacity.SetFloat("_MainAlpha", BGOpacity);
-        //	yield return new WaitForSeconds(0.01f);
-        //} while (Opacity.GetFloat("_MainAlpha") > 0f);
-        //Opacity.SetFloat("_MainAlpha", 0f);
-        //PanelCG.alpha = 0f;
-
-        //MainCam.gameObject.SetActive(true);
-
-        //RenderData.rendererFeatures[0].SetActive(false);
-  //      if (destroycap)
+		//BGFilterMaterial.SetFloat("_Opacity", 0.744f);
+		//do
 		//{
-		//	Destroy(_Capture);
-		//	_Capture = null;
-		//}
-		if (enddialogue)
-		{
-			DialogueRuntimeData.InDialog = false;
-			DialoguePlayer.current.DRCursor.SetActive(true);
-			Focused[0] = null;
-			Focused[1] = null;
-			Focused[2] = null;
-			DialogueRuntimeData.EndDialogue();
-		}
-		DialogueRuntimeData.OnTransition = false;
-		this.gameObject.SetActive(false);
-		yield break;
+		//	opacityValue -= value * Time.deltaTime;
+		//	BGFilterMaterial.SetFloat("_Opacity", opacityValue);
+		//	yield return new WaitForEndOfFrame();
+		//} while (opacityValue > 0f);
+		//BGFilterMaterial.SetFloat("_Opacity", 0f);
+
+		//yield return new WaitForSeconds(0.5f);
+
+		//float BGOpacity = 0.744f;
+		//do
+		//{
+		//	BGOpacity -= value * Time.deltaTime;
+		//	Opacity.SetFloat("_MainAlpha", BGOpacity);
+		//	yield return new WaitForSeconds(0.01f);
+		//} while (Opacity.GetFloat("_MainAlpha") > 0f);
+		//Opacity.SetFloat("_MainAlpha", 0f);
+		//PanelCG.alpha = 0f;
+
+		MainCam.enabled = true;
+
+		//DialogueRuntimeData.OnTransition = false;
+		gameObject.SetActive(false);
 	}
 	#endregion
+
 
 	#region Shake - Shake the panel camera (Event)
 	/// <summary>
@@ -392,16 +454,5 @@ public class DRDialoguePanels : MonoBehaviour
 
 		cam.transform.localPosition = originalCamPos;
 	}
-	#endregion
-
-	private void ResetAllTriggers()
-	{
-		foreach (var param in Panels.parameters)
-		{
-			if (param.type == AnimatorControllerParameterType.Trigger)
-			{
-				Panels.ResetTrigger(param.name);
-			}
-		}
-	}
+    #endregion
 }

@@ -3,6 +3,7 @@
 using System;
 using UnityEngine;
 using DREditor.Audio;
+using System.Threading.Tasks;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -23,21 +24,18 @@ namespace DREditor.Dialogues.Events
 		public bool _ShowHelp = false;
 		public CMTuple CMValue;
 
-		public void TriggerDialogueEvent()
+		public async Task TriggerEvent()
 		{
-			DialogueEventSystem.TriggerEvent("PlayBGM", CMValue);
+			await DialogueEventSystem.TriggerEvent("PlayBGM", CMValue);
 		}
 
 		#if UNITY_EDITOR
 		public void EditorUI()
 		{
-			Playlist MusicPlaylist;
+            string _animPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:Playlist")[0]);
+			Playlist MusicPlaylist = AssetDatabase.LoadAssetAtPath<Playlist>(_animPath);
 
-			if (Resources.Load<Playlist>("Jukebox"))
-			{
-				MusicPlaylist = Resources.Load<Playlist>("Jukebox");
-			}
-			else
+			if (MusicPlaylist == null)
 			{
 				EditorGUILayout.HelpBox("Unable to find a Music Playlist!\nCreate a music playlist in the Resources folder as Jukebox.asset\nYou can make a Jukebox Asset using Create/DREditor/MusicPlaylist.", MessageType.Error, true);
 				return;

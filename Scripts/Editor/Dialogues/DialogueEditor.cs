@@ -18,7 +18,7 @@ namespace DREditor.Dialogues.Editor
 		protected bool _directDialogue;
 		protected AudioClip _sfx = null;
 
-		public bool IsProtagonist(Character character) => character is Protagonist;
+		public bool IsProtagonist(Character character) => character.IsProtagonist;
 	}
 
 	[CustomEditor(typeof(Dialogue))]
@@ -28,16 +28,18 @@ namespace DREditor.Dialogues.Editor
 
 		SerializedProperty propLines;
 
-		private int lineEditNum = -1;
-		private List<bool> _lineEdit = new List<bool>();
-		private List<Rect> _lineEditRect = new List<Rect>();
-		private List<Type> _list;
+		private int lineEditIndex = -1;
+		private readonly List<bool> _lineEdit = new();
+		private readonly List<Rect> _lineEditRect = new();
+		private List<Type> _diaEventClassList;
 		private string[] choices;
 
 		private int _DiaEventIndex;
 		private bool _showDiaEvents;
 		private bool isMouseOnSprite;
 		private int lineToEnlarge;
+
+		private bool[] showChoiceDiaEvent = new bool[3];
 
 		public void OnEnable()
 		{
@@ -49,18 +51,18 @@ namespace DREditor.Dialogues.Editor
 
 		public override void OnInspectorGUI()
 		{
-            EditorUtility.SetDirty(dia);
-            serializedObject.Update();
+			EditorUtility.SetDirty(dia);
+			serializedObject.Update();
 
-            CreateForm();
+			CreateForm();
 
 			if (isMouseOnSprite)
 			{
 				ShowEnlargedSprite(lineToEnlarge, 1000f, 400f);
 				isMouseOnSprite = false;
 			}
-            serializedObject.ApplyModifiedProperties();
-        }
+			serializedObject.ApplyModifiedProperties();
+		}
 
 		void CreateForm()
 		{
@@ -154,7 +156,7 @@ namespace DREditor.Dialogues.Editor
 
 				for (int i = 0; i < dia.Lines.Count; i++)
 				{
-					Rect rect = new Rect();
+					Rect rect = new();
 					var currentLine = dia.Lines[i];
 					var color = Color.white;
 
@@ -209,8 +211,8 @@ namespace DREditor.Dialogues.Editor
 							//MainBox
 							using (new EditorGUILayout.HorizontalScope())
 							{
-                                #region Preview
-                                if (lineEditNum != i)
+								#region Preview
+								if (lineEditIndex != i)
 								{
 									//Column 1
 									if (currentLine.Expression != null)
@@ -262,11 +264,11 @@ namespace DREditor.Dialogues.Editor
 										TextPreview(propLineText.stringValue, GUILayout.Width(Screen.width - 210));
 									}
 								}
-                                #endregion
+								#endregion
 
-                                #region Editor
-                                else
-                                {
+								#region Editor
+								else
+								{
 									//Column 1
 									using (new EditorGUILayout.VerticalScope())
 									{
@@ -431,6 +433,13 @@ namespace DREditor.Dialogues.Editor
 										var propLine = propLines.GetArrayElementAtIndex(i);
 										var propLineText = propLine.FindPropertyRelative("Text");
 
+										if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+										{
+											GUI.FocusControl(null);
+											GUIUtility.keyboardControl = 0;
+											Event.current.Use();
+										}
+
 										if (currentLine.Speaker != null && !IsProtagonist(currentLine.Speaker))
 										{
 											propLineText.stringValue = EditorGUILayout.TextArea(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 320));
@@ -442,12 +451,7 @@ namespace DREditor.Dialogues.Editor
 											TextPreview(propLineText.stringValue, GUILayout.Height(62), GUILayout.Width(Screen.width - 210));
 										}
 
-                                        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
-                                        {
-                                            GUI.FocusControl(null);
-                                            Event.current.Use();
-                                        }
-                                    }
+									}
 
 									//Buttons Column
 									using (new EditorGUILayout.VerticalScope())
@@ -540,11 +544,11 @@ namespace DREditor.Dialogues.Editor
 										GUILayout.FlexibleSpace();
 									}
 								}
-                                #endregion
+								#endregion
 							}
 
 							//DialogueEvents Extension
-							if (lineEditNum == i)
+							if (lineEditIndex == i)
 							{
 								GUILayout.Space(5f);
 								currentLine.ShowDiaEvents = ShowDialogueEventList(currentLine.DiaEvents, currentLine.ShowDiaEvents);
@@ -555,7 +559,7 @@ namespace DREditor.Dialogues.Editor
 
 					if (Event.current.type == EventType.MouseDown && _lineEditRect[i].Contains(Event.current.mousePosition))
 					{
-						lineEditNum = i;
+						lineEditIndex = i;
 						Repaint();
 					}
 
@@ -568,40 +572,44 @@ namespace DREditor.Dialogues.Editor
 			{
 				for (int i = 0; i < dia.Choices.Count; i++)
 				{
-					using (new EditorGUILayout.HorizontalScope("Box"))
+					using (new EditorGUILayout.VerticalScope("Box"))
 					{
-						GUILayout.Label("Choice " + (i + 1).ToString(), GUILayout.Width(80));
+                        GUILayout.Label("Choice " + (i + 1).ToString(), GUILayout.Width(80));
+                        using (new EditorGUILayout.HorizontalScope())
+                        {
+                            dia.Choices[i].ChoiceText = EditorGUILayout.TextField("Text", dia.Choices[i].ChoiceText);
 
-						dia.Choices[i].ChoiceText = EditorGUILayout.TextField(dia.Choices[i].ChoiceText, GUILayout.Width(Screen.width - 343));
+                            if (dia.Choices[i].NextDialogue == null)
+                            {
+                                GUI.backgroundColor = Color.cyan;
+                            }
+                            dia.Choices[i].NextDialogue = (Dialogue)EditorGUILayout.ObjectField(dia.Choices[i].NextDialogue,
+                                                        typeof(Dialogue),
+                                                        true,
+                                                        GUILayout.Width(100));
 
-						if (dia.Choices[i].NextDialogue == null)
-						{
-							GUI.backgroundColor = Color.cyan;
-						}
-						dia.Choices[i].NextDialogue = (Dialogue)EditorGUILayout.ObjectField(dia.Choices[i].NextDialogue,
-													typeof(Dialogue),
-													true,
-													GUILayout.Width(100));
+                            GUI.backgroundColor = dia.Color;
+                            if (dia.Choices[i].NextDialogue != null)
+                            {
+                                string[] nextDialogueTexts = new string[dia.Choices[i].NextDialogue.Lines.Count];
+                                int[] optValues = new int[dia.Choices[i].NextDialogue.Lines.Count];
 
-						GUI.backgroundColor = dia.Color;
-						if (dia.Choices[i].NextDialogue != null)
-						{
-							string[] nextDialogueTexts = new string[dia.Choices[i].NextDialogue.Lines.Count];
-							int[] optValues = new int[dia.Choices[i].NextDialogue.Lines.Count];
+                                for (int j = 0; j < dia.Choices[i].NextDialogue.Lines.Count; j++)
+                                {
+                                    nextDialogueTexts[j] = dia.Choices[i].NextDialogue.Lines[j].Text;
+                                    optValues[j] = value;
+                                    value++;
+                                }
 
-							for (int j = 0; j < dia.Choices[i].NextDialogue.Lines.Count; j++)
-							{
-								nextDialogueTexts[j] = dia.Choices[i].NextDialogue.Lines[j].Text;
-								optValues[j] = value;
-								value++;
-							}
+                                value = 0;
+                                GUI.backgroundColor = Color.white;
+                                GUI.backgroundColor = dia.Choices[i].NextDialogue.Color;
+                                dia.Choices[i].NextIndexInDialogue = EditorGUILayout.IntPopup(dia.Choices[i].NextIndexInDialogue, nextDialogueTexts, optValues, GUILayout.Width(100));
+                            }
+                        }
 
-							value = 0;
-							GUI.backgroundColor = Color.white;
-							GUI.backgroundColor = dia.Choices[i].NextDialogue.Color;
-							dia.Choices[i].NextIndexInDialogue = EditorGUILayout.IntPopup(dia.Choices[i].NextIndexInDialogue, nextDialogueTexts, optValues, GUILayout.Width(100));
-						}
-					}
+						showChoiceDiaEvent[i] = ShowDialogueEventList(dia.Choices[i].DiaEvents, showChoiceDiaEvent[i]);
+                    }
 				}
 
 				GUI.backgroundColor = dia.Color;
@@ -731,9 +739,9 @@ namespace DREditor.Dialogues.Editor
 			GUILayout.Space(30);
 		}
 
-        #region UIMethods
+		#region UIMethods
 		private bool ShowDialogueEventList(List<IDialogueEvent> eventList, bool open, string title = "Dialogue Events")
-        {
+		{
 			using (new EditorGUILayout.VerticalScope("Box"))
 			{
 				int _errors = ErrorCheck(eventList);
@@ -758,9 +766,9 @@ namespace DREditor.Dialogues.Editor
 				{
 					for (int d = 0; d < eventList.Count; d++)
 					{
-                        if (eventList[d] != null)
-                        {
-                            EditorGUILayout.BeginHorizontal("Box");
+						if (eventList[d] != null)
+						{
+							EditorGUILayout.BeginHorizontal("Box");
 							using (new EditorGUILayout.VerticalScope())
 							{
 								if (eventList[d] != null)
@@ -795,14 +803,14 @@ namespace DREditor.Dialogues.Editor
 								}
 							}
 							EditorGUILayout.EndHorizontal();
-                        }
-                    }
+						}
+					}
 
 					EditorGUILayout.BeginHorizontal("Box");
 					_DiaEventIndex = EditorGUILayout.Popup(_DiaEventIndex, choices);
 					if (GUILayout.Button("Add Dialogue Event"))
 					{
-						eventList.Add((IDialogueEvent)Activator.CreateInstance(_list[_DiaEventIndex]));
+						eventList.Add((IDialogueEvent)Activator.CreateInstance(_diaEventClassList[_DiaEventIndex]));
 					}
 					EditorGUILayout.EndHorizontal();
 				}
@@ -810,91 +818,10 @@ namespace DREditor.Dialogues.Editor
 			}
 			return open;
 		}
+		#endregion
 
-   //     private bool ShowDialogueEventList(SerializedProperty eventList, bool open, string title = "Dialogue Events")
-   //     {
-			//var elist = (List<IDialogueEvent>)eventList.managedReferenceValue;
-
-   //         using (new EditorGUILayout.VerticalScope("Box"))
-   //         {
-   //             //int _errors = ErrorCheck(eventList);
-   //             GUIStyle _diastyle = new GUIStyle();
-   //             _diastyle.padding = new RectOffset(20, 20, 0, 0);
-
-   //             //Check for errors in Dialogue Events
-   //             if (_errors > 0)
-   //             {
-   //                 open = EditorGUILayout.BeginFoldoutHeaderGroup(open,
-   //                     new GUIContent($"{title} ({eventList.Count})",
-   //                     "Show list of Dialogue Events to be invoked at this line."));
-   //             }
-   //             else
-   //             {
-   //                 open = EditorGUILayout.BeginFoldoutHeaderGroup(open,
-   //                     new GUIContent($"{title} ({eventList.Count})",
-   //                     "Show list of Dialogue Events to be invoked at this line."));
-   //             }
-
-   //             if (open)
-   //             {
-   //                 for (int d = 0; d < eventList.Count; d++)
-   //                 {
-   //                     if (eventList[d] != null)
-   //                     {
-   //                         EditorGUILayout.BeginHorizontal("Box");
-   //                         using (new EditorGUILayout.VerticalScope())
-   //                         {
-   //                             if (eventList[d] != null)
-   //                             {
-   //                                 EditorGUILayout.LabelField(eventList[d]?.GetType().Name, EditorStyles.largeLabel);
-   //                                 HandyFields.UISplitter(Color.gray);
-   //                                 eventList[d]?.EditorUI();
-   //                                 GUILayout.Space(5);
-   //                                 eventList[d]?.ShowHelpBox();
-   //                             }
-   //                             else
-   //                             {
-   //                                 EditorGUILayout.HelpBox("Unsupported/Null Dialogue Event.\n" +
-   //                                   "This may have been broken by an update. Please delete this using the - button on the right side of this error " +
-   //                                   "and reapply your event. If still isn't fixed, post an issue on GitHub.", MessageType.Error, true);
-   //                             }
-   //                         }
-   //                         using (new EditorGUILayout.VerticalScope(GUILayout.Width(20)))
-   //                         {
-   //                             if (GUILayout.Button(new GUIContent("-", "Delete Dialogue Event.\nWarning: this is non-recoverable. Using undo won't do a thing."), GUILayout.Width(20)))
-   //                             {
-   //                                 eventList.Remove(eventList[d]);
-   //                                 Repaint();
-   //                             }
-
-   //                             if (eventList[d] != null) //Kinda sucks that I'm forced to do nested ifs here.
-   //                             {
-   //                                 if (GUILayout.Button(new GUIContent("?", "Show Help"), GUILayout.Width(20)))
-   //                                 {
-   //                                     eventList[d].ToggleHelpBox();
-   //                                 }
-   //                             }
-   //                         }
-   //                         EditorGUILayout.EndHorizontal();
-   //                     }
-   //                 }
-
-   //                 EditorGUILayout.BeginHorizontal("Box");
-   //                 _DiaEventIndex = EditorGUILayout.Popup(_DiaEventIndex, choices);
-   //                 if (GUILayout.Button("Add Dialogue Event"))
-   //                 {
-   //                     eventList.Add((IDialogueEvent)Activator.CreateInstance(_list[_DiaEventIndex]));
-   //                 }
-   //                 EditorGUILayout.EndHorizontal();
-   //             }
-   //             EditorGUILayout.EndFoldoutHeaderGroup();
-   //         }
-   //         return open;
-   //     }
-        #endregion
-
-        #region Private Functions
-        private int GetCharacterDatabase()
+		#region Private Functions
+		private int GetCharacterDatabase()
 		{
 			string[] _databaseguids = AssetDatabase.FindAssets("t:CharacterDatabase");
 			if (_databaseguids.Length == 1)
@@ -941,11 +868,11 @@ namespace DREditor.Dialogues.Editor
 				DialogueEventList.UpdateList();
 			}
 
-			_list = DialogueEventList.ListOfClasses;
-			choices = new string[_list.Count];
+			_diaEventClassList = DialogueEventList.ListOfClasses;
+			choices = new string[_diaEventClassList.Count];
 			for (int x = 0; x < choices.Length; x++)
 			{
-				choices[x] = _list[x].Name;
+				choices[x] = _diaEventClassList[x].Name;
 			}
 		}
 

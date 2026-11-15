@@ -1,6 +1,8 @@
 ﻿//CustomEvent Dialogue Event script by SeleniumSoul for DREditor.
 using System;
 using UnityEngine;
+using System.Threading.Tasks;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -21,9 +23,9 @@ namespace DREditor.Dialogues.Events
 		public CETuple CEValue;
 
 
-		public void TriggerDialogueEvent()
+		public async Task TriggerEvent()
 		{
-			DialogueEventSystem.TriggerEvent(CEValue.EventName);
+			await DialogueEventSystem.TriggerEvent(CEValue.EventName);
 		}
 
 #if UNITY_EDITOR

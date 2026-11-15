@@ -1,6 +1,7 @@
 ﻿//Show CG Dialogue Event script by SeleniumSoul for DREditor.
 
 using System;
+using System.Threading.Tasks;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -16,6 +17,7 @@ namespace DREditor.Dialogues.Events
 		public CGChoices CGChoice;
 		public bool ScreenFadeOut;
 		public float FadeOutTime;
+		public bool HideUI;
 	}
 
 	public enum CGChoices { Show, TriggerNextState, Hide }
@@ -26,19 +28,20 @@ namespace DREditor.Dialogues.Events
 		public SCGTuple SCGValue;
 		private bool _ShowHelp = false;
 
-		public void TriggerDialogueEvent()
+		public async Task TriggerEvent()
 		{
 			switch (SCGValue.CGChoice)
 			{
 				case CGChoices.Show:
-					DialogueEventSystem.TriggerEvent("ShowCG", SCGValue.CG);
+					await DialogueEventSystem.TriggerEvent("ShowCG", SCGValue.CG);
 					break;
 				case CGChoices.TriggerNextState:
-					DialogueEventSystem.TriggerEvent("CG_TriggerNextState");
+					await DialogueEventSystem.TriggerEvent("CG_TriggerNextState");
 					break;
 				case CGChoices.Hide:
-					DialogueEventSystem.TriggerEvent("CG_FadeOut");
-					if (SCGValue.ScreenFadeOut) DialogueEventSystem.TriggerEvent("FadeOut", SCGValue.FadeOutTime);
+					await DialogueEventSystem.TriggerEvent("CG_FadeOut");
+					if (SCGValue.ScreenFadeOut)
+						await DialogueEventSystem.TriggerEvent("FadeOut", SCGValue.FadeOutTime);
 					break;
 				default:
 					Debug.LogError("DREditor (CGDisplay): Unable to recognize transition! Please check the transition option in the Dialogue Event if it is empty.");
@@ -54,6 +57,7 @@ namespace DREditor.Dialogues.Events
 			{
 				case CGChoices.Show:
 					SCGValue.CG = (GameObject)EditorGUILayout.ObjectField(new GUIContent("What CG to display?", "Choose which CG to display."), SCGValue.CG, typeof(GameObject), false);
+					SCGValue.HideUI = EditorGUILayout.Toggle(new GUIContent("Hide UI", "Hide the UI on show."), SCGValue.HideUI);
 					break;
 				case CGChoices.TriggerNextState:
 					EditorGUILayout.LabelField("Note: The next state of the CG will be shown at this line.");

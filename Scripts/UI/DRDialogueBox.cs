@@ -5,34 +5,36 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using DREditor.Trial;
 using DREditor.Dialogues;
 using DREditor.Dialogues.Events;
-using DREditor.Characters;
-using UnityEngine.InputSystem;
+using System;
+using DREditor;
 
 /// <summary>
 /// UI Script that handles the dialogue box for the story text.
 /// </summary>
 public class DRDialogueBox : MonoBehaviour
 {
-	[Header("Properties")]
-    //Note: This will be changed after the protagonist asset in DREditor is finished.
-    [SerializeField] private string Protagonist = "Rantaro Amami";
-    [Tooltip("Check if this dialogue box is used for CG.")]
-	[SerializeField] private bool IsCGDialogueBox;
-	[Tooltip("Amount of time the text will finish writing. (Not in seconds)")]
-	[SerializeField] [Range(1f, 15f)] private float WriteSpeed;
-    [Tooltip("The speed of the gradient change.")]
-    [SerializeField] private float GradientLerpSpeed = 1;
-    [SerializeField] private float GradientLerpLength = 1;
+	[Module] private AudioPlayer audioPlayer;
 
-    [Header("Sounds")]
-    [SerializeField] private AudioClip _nextLineSound;
-    [SerializeField] private AudioClip _TruthBulletShowSound;
-    [SerializeField] private AudioClip _TruthBulletHideSound;
+	[Header("Properties")]
+	[Obsolete("This will be changed after the protagonist asset in DREditor is finished.")]
+	[SerializeField] private string Protagonist = "Rantaro Amami";
+	[Tooltip("Check if this dialogue box is used for CG.")]
+	[SerializeField] private bool IsCGDialogueBox;
+	[Tooltip("The speed of how the text will be shown in letters per second.")]
+	[SerializeField] [Range(50f, 100f)] private float WriteSpeed;
+	[SerializeField] private Sprite NullNameplate;
+
+	[Header("Sounds")]
+	[SerializeField] private AudioClip _nextLineSound;
+	[SerializeField] private AudioClip _TruthBulletShowSound;
+	[SerializeField] private AudioClip _TruthBulletHideSound;
 
 	[Header("References")]
+	[SerializeField] private DRTextBox NormalStyle;
+	[SerializeField] private DRTextBox CGStyle;
+
 	[SerializeField] private Image NBImage;
 	[SerializeField] private CanvasGroup NBTextBoxCG;
 	[SerializeField] private TextMeshProUGUI NBText, TBText;
@@ -41,38 +43,33 @@ public class DRDialogueBox : MonoBehaviour
 
 	[SerializeField] private Material TextboxMaterial;
 
-    //private DRInput controls;
-    private Animator boxAnimate;
-
-	private bool IsProtagonist;
-	private Coroutine typeTextCoroutine;
-	private Coroutine boxGradientLerpCoroutine;
-
-	private InputAction confirmAction;
-	private InputAction cancelAction;
+	private Animator boxAnimate;
 
 	void Awake()
 	{
-		if (!boxAnimate) boxAnimate = GetComponent<Animator>();
-		confirmAction = InputSystem.actions.FindAction("Confirm");
-        confirmAction = InputSystem.actions.FindAction("Cancel");
-    }
+		DRModuleSystem.Inject(this);
+        DialogueEventSystem.RegisterEvents(this);
+
+        if (!boxAnimate)
+			boxAnimate = GetComponent<Animator>();
+
+		DialogueRuntimeData.OnChangeState += OnChangeDialogueState;
+	}
 
 	private void Start()
 	{
-		//DialogueEventSystem.StartListening("LinePass", ProcessLine);
-        DialogueEventSystem.StartListening("CharacterLeave", OnCharacterLeave);
-        gameObject.SetActive(false);
+		gameObject.SetActive(false);
 	}
-    private void OnDestroy()
-    {
-        DialogueEventSystem.StopListening("CharacterLeave", OnCharacterLeave);
-    }
-    private void OnEnable()
-	{
-		DialogueEventSystem.StartListening("TruthBulletDisplay", TruthBulletDisplay);
 
-		Auto(DialogueRuntimeData._auto);
+	private void OnDestroy()
+	{
+		DialogueRuntimeData.OnChangeState -= OnChangeDialogueState;
+		DialogueEventSystem.DeregisterEvents(this);
+	}
+
+	private void OnEnable()
+	{
+		Auto(DialogueRuntimeData.OnAuto);
 
 		foreach (var trgr in boxAnimate.parameters)
 		{
@@ -85,75 +82,89 @@ public class DRDialogueBox : MonoBehaviour
 
 	private void OnDisable()
 	{
-		DialogueEventSystem.StopListening("TruthBulletDisplay", TruthBulletDisplay);
-
 		DialogueRuntimeData.IsWriting = false;
 	}
 
-	private void Update()
+	private void OnChangeDialogueState(DialogueRuntimeData.DialogueState obj)
 	{
-		Auto(DialogueRuntimeData._auto || DialogueRuntimeData._skip);
+		Auto(DialogueRuntimeData.OnAuto);
 	}
+
+	[DialogueEvent("SetSayboxActive")]
+	public void OnSetSayboxActive(bool active)
+	{
+		gameObject.SetActive(active);
+	}
+
+
+	[DialogueEvent("PrintDialogue")]
+	public void UseText(Line line)
+	{
+		if (!gameObject.activeSelf)
+			gameObject.SetActive(true);
+
+		bool isProtagonist = line.Speaker != null && line.Speaker.IsProtagonist;
+		var diaMode = DialogueRuntimeData.DialogueAsset.DialogueMode;
+
+		//string charname = "";
+		Sprite nameplate = line.Speaker != null ? line.Speaker.Nameplate : null;
+
+		if (line.AliasNumber > 0 && line.Speaker != null)
+		{
+			//charname = line.Speaker.Aliases[line.AliasNumber - 1].Name;
+			nameplate = line.Speaker.Aliases[line.AliasNumber - 1].Nameplate;
+		}
+
+		SetSpeakerName(nameplate);
+
+		NormalStyle.gameObject.SetActive(diaMode == BoxMode.Normal);
+		CGStyle.gameObject.SetActive(diaMode == BoxMode.CG);
+		
+		switch (diaMode) {
+			case BoxMode.Normal:
+				NormalStyle.ProcessLine(line.Text, isProtagonist, WriteSpeed);
+				break;
+			case BoxMode.CG:
+				CGStyle.ProcessLine(line.Text, isProtagonist, WriteSpeed);
+				break;
+		}
+
+		if (audioPlayer != null)
+			audioPlayer.OnPlaySystemSFX(_nextLineSound);
+
+		boxAnimate.SetBool("Finish", false);
+	}
+
+    [DialogueEvent("FinishText")]
+    public void FinishText()
+	{
+		switch (DialogueRuntimeData.DialogueAsset.DialogueMode)
+		{
+			case BoxMode.Normal:
+				NormalStyle.TypeWhole();
+				break;
+			case BoxMode.CG:
+				CGStyle.TypeWhole();
+				break;
+		}
+	}
+
     public void Auto(bool _on)
     {
-		boxAnimate.SetBool("Auto", _on);
-	}
-	
-	private void ProcessLine(object lineObject)
-	{
-		Line line = (Line)lineObject;
-		Sprite nameplate = line.Speaker.Nameplate;
-
-        if (typeTextCoroutine != null) StopCoroutine(typeTextCoroutine);
-        if (boxGradientLerpCoroutine != null) StopCoroutine(boxGradientLerpCoroutine);
-        if (IsCGDialogueBox) DialogueRuntimeData.Advance = true;
-
-        boxGradientLerpCoroutine = StartCoroutine(BoxGradientLerp(GradientLerpSpeed, GradientLerpLength));
-
-        if (line.AliasNumber > 0 && line.Speaker != null)
-        {
-            IsProtagonist = (line.Speaker.FullName(false) == Protagonist);
-            nameplate = line.Speaker.Aliases[line.AliasNumber - 1].Nameplate;
-        }
-
-        SetSpeakerName(nameplate);
-        DialogueEventSystem.TriggerEvent("PlaySystemSFX", _nextLineSound);
-        boxAnimate.SetBool("Finish", false);
-
-        typeTextCoroutine = StartCoroutine(TypeText(line.Text));
+        boxAnimate.SetBool("Auto", _on);
     }
 
-    public void UseText(string speakerName, Sprite nameplate, string line, bool start = false)
-    {
-        if (typeTextCoroutine != null) StopCoroutine(typeTextCoroutine);
-		if (boxGradientLerpCoroutine != null) StopCoroutine(boxGradientLerpCoroutine);
-        if (IsCGDialogueBox) DialogueRuntimeData.Advance = true;
-
-        IsProtagonist = (speakerName == Protagonist);
-		
-		boxGradientLerpCoroutine = StartCoroutine(BoxGradientLerp(GradientLerpSpeed, GradientLerpLength));
-
-        SetSpeakerName(nameplate);
-        DialogueEventSystem.TriggerEvent("PlaySystemSFX", _nextLineSound);
-        boxAnimate.SetBool("Finish", false);
-
-        if (!start)
-			boxAnimate.SetTrigger("Next");
-
-        typeTextCoroutine = StartCoroutine(TypeText(line));
-    }
-
-    public void SetSpeakerName(string name, float xpos = 678f)
+    private void SetSpeakerName(string name, float xpos = 678f)
 	{
-        NBText.text = name;
-        if (name == Protagonist)
-		{
-			//NBTextBoxCG.alpha = 1;
-			//NBTextTransform.anchoredPosition = new Vector2(xpos, NBTextTransform.anchoredPosition.y);
-			//NBTextTransform.localScale = new Vector3(-1, 1, 1);
-			//NBTextTransform.GetChild(0).GetComponent<RectTransform>().localScale = new Vector3(-1, 1, 1);
-		}
-		else if (name == " " || name == "")
+		NBText.text = name;
+		//if (name == Protagonist)
+		//{
+		//	NBTextBoxCG.alpha = 1;
+		//	NBTextTransform.anchoredPosition = new Vector2(xpos, NBTextTransform.anchoredPosition.y);
+		//	NBTextTransform.localScale = new Vector3(-1, 1, 1);
+		//	NBTextTransform.GetChild(0).GetComponent<RectTransform>().localScale = new Vector3(-1, 1, 1);
+		//}
+		if (name == " " || name == "")
 		{
 			NBTextBoxCG.alpha = 0;
 		}
@@ -166,18 +177,18 @@ public class DRDialogueBox : MonoBehaviour
 		}
 	}
 
-    public void SetSpeakerName(Sprite nameplate, float xpos = 678f)
-    {
+	private void SetSpeakerName(Sprite nameplate, float xpos = 678f)
+	{
 		NBImage.color = nameplate == null ? Color.clear : Color.white;
-        NBImage.sprite = nameplate;
-    }
+		NBImage.sprite = nameplate;
+	}
 
-    //Tags:
-    //<emp> </emp> = <material="Nunito_Emphasis"> = Emphasis
-    //<nar> </nar> = <material="Nunito_Narration"> = Narration
-    //<tut> </tut> = <material="Nunito_Tutorial"> = Tutorial
+	//Tags:
+	//<emp> </emp> = <material="Nunito_Emphasis"> = Emphasis
+	//<nar> </nar> = <material="Nunito_Narration"> = Narration
+	//<tut> </tut> = <material="Nunito_Tutorial"> = Tutorial
 
-    IEnumerator TypeText(string text) {
+	private IEnumerator TypeText(string text) {
 		text = Regex.Replace(text, "<emp>", "<material=\"Nunito_Emphasis\">");
 		text = Regex.Replace(text, "</emp>", "</material>");
 		text = Regex.Replace(text, "<nar>", "<material=\"Nunito_Narration\">");
@@ -215,18 +226,15 @@ public class DRDialogueBox : MonoBehaviour
 		boxAnimate.SetBool("Finish", true);
 	}
 
-	private void TruthBulletDisplay(object bullet)
+	[DialogueEvent("TruthBulletDisplay")]
+	private void TruthBulletDisplay(DTBTuple bullet)
 	{
-		DTBTuple _bulletObject = (DTBTuple)bullet;
-		switch (_bulletObject.TBChoice)
+		switch (bullet.TBChoice)
 		{
 			case DTBChoice.Show:
-				TruthBulletImage.sprite = _bulletObject.TB.Picture;
-				DialogueEventSystem.TriggerEvent("PlaySystemSFX", _TruthBulletShowSound);
-				boxAnimate.SetTrigger("ShowTruthBullet");
+                boxAnimate.SetTrigger("ShowTruthBullet");
 				break;
 			case DTBChoice.Hide:
-				DialogueEventSystem.TriggerEvent("PlaySystemSFX", _TruthBulletHideSound);
 				boxAnimate.SetTrigger("HideTruthBullet");
 				break;
 			default:
@@ -234,25 +242,8 @@ public class DRDialogueBox : MonoBehaviour
 		}
 	}
 
-	private IEnumerator BoxGradientLerp(float speed, float length)
-	{
-		float _elapsedTime = 0;
-		float _lerpStart = IsProtagonist ? 0 : 1;
-		float _lerpEnd = IsProtagonist ? 1 : 0;
-
-		while (_elapsedTime < length)
-		{
-			TextboxMaterial.SetFloat("_State", Mathf.Lerp(TextboxMaterial.GetFloat("_State"), _lerpEnd, _elapsedTime * speed));
-			_elapsedTime += Time.deltaTime;
-
-			yield return null;
-		}
-
-        TextboxMaterial.SetFloat("_State", _lerpEnd);
-		yield return null;
-    } 
-
-	private void OnCharacterLeave()
+    [DialogueEvent("CharacterLeave")]
+    private void OnCharacterLeave()
 	{
 
 	}

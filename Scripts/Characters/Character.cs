@@ -32,6 +32,7 @@ namespace DREditor.Characters
         public Texture2D Headshot;
         public Texture2D TrialNameplate;
         public float TrialHeight = 7.88f;
+        public bool IsProtagonist;
 
         public bool Equals(Character other)
         {

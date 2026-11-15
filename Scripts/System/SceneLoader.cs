@@ -1,34 +1,83 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using DREditor;
+using DREditor.Dialogues.Events;
+using System;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
-public class SceneLoader : MonoBehaviour
+public class SceneLoader : MonoBehaviour, IModule
 {
-    public static Action<AsyncOperationHandle<SceneInstance>> OnLoadStarted;
+    public Action OnLoadStarted;
+    public Action OnLoadFinished;
 
-    public void Start()
+    public string PreviousSceneID { get; private set; }
+    public Task Init()
     {
-        SceneManager.SetActiveScene(SceneManager.GetSceneAt(0));
+        DialogueEventSystem.RegisterEvents(this);
+        return Task.CompletedTask;
     }
 
-    public AsyncOperationHandle<SceneInstance> LoadScene(AssetReference sceneReference, Action<AsyncOperationHandle<SceneInstance>> onLoadCallback)
+    [DialogueEvent("LoadRoom")]
+    private void LoadRoom(string addressablePath)
     {
-        if (SceneManager.GetActiveScene().name != "System")
-            SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene());
+        LoadScene(addressablePath, null);
+    }
 
-        var currentSceneHandle = Addressables.LoadSceneAsync(sceneReference, LoadSceneMode.Additive);
-        currentSceneHandle.Completed += ctx =>
+    public async void LoadScene(AssetReference sceneReference, Action<AsyncOperationHandle<SceneInstance>> onLoadCallback)
+    {
+        //if (SceneManager.GetActiveScene().name != "System")
+        //    SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene());
+
+        //transition simulation
+        await Awaitable.WaitForSecondsAsync(0.5f);
+
+        var currentSceneHandle = Addressables.LoadSceneAsync(sceneReference);
+        currentSceneHandle.Completed += async ctx =>
         {
-            onLoadCallback(ctx);
+            onLoadCallback?.Invoke(ctx);
+
             SceneManager.SetActiveScene(ctx.Result.Scene);
+            Debug.Log($"DREditor <color=blue>(SceneLoader) </color>: Loaded {ctx.Result.Scene.name}.");
+            //transition simulation
+            await Awaitable.WaitForSecondsAsync(0.5f);
+            InitializeRoom();
+            OnLoadFinished?.Invoke();
         };
 
-        OnLoadStarted?.Invoke(currentSceneHandle);
-        return currentSceneHandle;
+        OnLoadStarted?.Invoke();
+    }
+
+    public async void LoadScene(string path, Action<AsyncOperationHandle<SceneInstance>> onLoadCallback)
+    {
+        OnLoadStarted?.Invoke();
+
+        //transition simulation
+        await Awaitable.WaitForSecondsAsync(0.5f);
+
+        var currentSceneHandle = Addressables.LoadSceneAsync(path);
+        currentSceneHandle.Completed += async ctx =>
+        {
+            onLoadCallback?.Invoke(ctx);
+
+            SceneManager.SetActiveScene(ctx.Result.Scene);
+            Debug.Log($"DREditor <color=blue>(SceneLoader) </color>: Loaded {ctx.Result.Scene.name}.");
+            //transition simulation
+            await Awaitable.WaitForSecondsAsync(0.5f);
+            InitializeRoom();
+            OnLoadFinished?.Invoke();
+        };
+
+    }
+
+    private void InitializeRoom()
+    {
+        var room = GameObject.FindGameObjectWithTag("Room");
+        if (room != null && room.TryGetComponent<DRRoomSetup>(out var setup))
+        {
+            setup.SetupScene();
+        }
     }
 }

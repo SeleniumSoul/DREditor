@@ -2,6 +2,8 @@
 
 using System;
 using UnityEngine;
+using System.Threading.Tasks;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -20,61 +22,71 @@ namespace DREditor.Dialogues.Events
 	[Serializable]
 	public class ChangeWindowPattern : IDialogueEvent
 	{
-		public bool _ShowHelp = false;
 		public CWPTuple CWPValue;
+		public bool hidePanels = false;
 
-		public void TriggerDialogueEvent()
+		public async Task TriggerEvent()
 		{
-			DialogueEventSystem.TriggerEvent("ChangeWindowPattern", CWPValue);
+			if (!hidePanels)
+				await DialogueEventSystem.TriggerEvent("ChangeWindowPattern", CWPValue);
+			else
+				await DialogueEventSystem.TriggerEvent("PanelActive", false);
 		}
 
-	#if UNITY_EDITOR
-		private AnimatorController PanelAnimator;
-		private string[] _Parameters;
+		#if UNITY_EDITOR
+        public bool showHelp = false;
+        private AnimatorController panelAnimator;
+		private string[] parameters;
 
 		public void EditorUI()
 		{
-			if (PanelAnimator == null)
+			if (panelAnimator == null)
 			{
-				string _animPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("DialoguePanels t:AnimatorController")[0]);
-				PanelAnimator = AssetDatabase.LoadAssetAtPath<AnimatorController>(_animPath);
+				string animPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("DialoguePanels t:AnimatorController")[0]);
+				panelAnimator = AssetDatabase.LoadAssetAtPath<AnimatorController>(animPath);
 			}
-			PanelAnimator = (AnimatorController)EditorGUILayout.ObjectField("Animator: ", PanelAnimator, typeof(AnimatorController), true);
-			if (PanelAnimator)
+			panelAnimator = (AnimatorController)EditorGUILayout.ObjectField("Animator", panelAnimator, typeof(AnimatorController), true);
+            hidePanels = EditorGUILayout.Toggle(new GUIContent("Hide", "Hide the dialogue panels."), hidePanels);
+
+            if (panelAnimator)
 			{
-				_Parameters = GetAnimatorParameters();
-				CWPValue._ParameterIndex = EditorGUILayout.Popup("Position: ", CWPValue._ParameterIndex, _Parameters);
-				CWPValue.PatternName = _Parameters[CWPValue._ParameterIndex];
-				EditorGUILayout.LabelField($"Showing {CWPValue.PatternName} at this line.");
+				if (hidePanels)
+					return;
+
+                parameters = GetAnimatorParameters();
+                CWPValue._ParameterIndex = EditorGUILayout.Popup("Position", CWPValue._ParameterIndex, parameters);
+                CWPValue.PatternName = parameters[CWPValue._ParameterIndex];
+                EditorGUILayout.LabelField($"Showing {CWPValue.PatternName} at this line.");
 			}
-            else
-            {
-				CWPValue.PatternName = EditorGUILayout.DelayedTextField("Position: ", CWPValue.PatternName);
+			else
+			{
+				CWPValue.PatternName = EditorGUILayout.DelayedTextField("Position", CWPValue.PatternName);
 				EditorGUILayout.HelpBox("Please link the AnimatorController of your Dialogue Panel on the Animator Field. Or if unavailable, specify the parameter in the field above.", MessageType.Warning, true);
 			}
 		}
 
 		public void ToggleHelpBox()
 		{
-			_ShowHelp = !_ShowHelp;
+			showHelp = !showHelp;
 		}
 
 		public void ShowHelpBox()
 		{
-			if (_ShowHelp) EditorGUILayout.HelpBox("Change the positions of the panel windows when talking to somebody.", MessageType.Info, true);
+			if (showHelp) EditorGUILayout.HelpBox("Change the positions of the panel windows when talking to somebody.", MessageType.Info, true);
 		}
 
 		private string[] GetAnimatorParameters()
 		{
-			string[] parameterlist = new string[PanelAnimator.parameters.Length - 2];
+			int indexAdjust = 2;
+			string[] parameterlist = new string[panelAnimator.parameters.Length - indexAdjust];
 
-			for (int i = 0; i < PanelAnimator.parameters.Length - 2; i++)
-            {
-				parameterlist[i] = PanelAnimator.parameters[i + 2].name;
-            }
+			for (int i = indexAdjust; i < panelAnimator.parameters.Length; i++)
+			{
+				parameterlist[i - indexAdjust] = panelAnimator.parameters[i].name;
+			}
 
 			return parameterlist;
 		}
-	#endif
+		#endif
 	}
 }
