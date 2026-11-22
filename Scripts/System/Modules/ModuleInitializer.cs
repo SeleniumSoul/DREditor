@@ -3,7 +3,7 @@ using UnityEngine;
 namespace DREditor
 {
 	[DefaultExecutionOrder(-1000)]
-	public class ModuleHandler : MonoBehaviour
+	public class ModuleInitializer : MonoBehaviour
 	{
 		private bool loadedFromStart = false;
 
@@ -23,7 +23,7 @@ namespace DREditor
 			foreach (var component in components)
 			{
 				var type = component.GetType();
-				if (type == typeof(ModuleHandler) || type == typeof(Transform))
+				if (type == typeof(ModuleInitializer) || type == typeof(Transform))
 					continue;
 
 				moduleHubMethod.MakeGenericMethod(type).Invoke(null, new object[] { component });
