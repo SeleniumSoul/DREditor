@@ -47,7 +47,7 @@ namespace DREditor.Dialogues
 			return cha.Aliases.ToArray();
 		}
 
-		public int[] getNamesIntValues()
+		public int[] GetNamesIntValues()
 		{
 			int[] values = new int[Speakers.GetNames().ToArray().Length];
 			for (int i = 0; i < values.Length; i++)
@@ -57,7 +57,7 @@ namespace DREditor.Dialogues
 			return values;
 		}
 
-		public int[] getExpressionIntValues(Character cha)
+		public int[] GetExpressionIntValues(Character cha)
 		{
 
 			int[] values = new int[cha.Expressions.Count + 1];
@@ -68,7 +68,7 @@ namespace DREditor.Dialogues
 			return values;
 		}
 
-		public int[] getAliasesIntValues(Character cha)
+		public int[] GetAliasesIntValues(Character cha)
 		{
 			int[] values = new int[cha.Aliases.Count + 1];
 			for (int i = 0; i < values.Length; i++)
@@ -111,7 +111,7 @@ namespace DREditor.Dialogues
 		public string Text;
 		public AudioClip VoiceSFX;
 		public List<AudioClip> SFX = new List<AudioClip>();
-		[SerializeReference] public List<IDialogueEvent> DiaEvents;
+		[SerializeReference] public List<IDialogueEvent> DiaEvents = new();
 		public float TimeToNextLine;
 		public bool AutomaticLine;
 		public Expression Expression;
@@ -156,6 +156,5 @@ namespace DREditor.Dialogues
 	{
 		public bool Enabled;
 		public string Scene;
-		//transition
 	}
 }
