@@ -31,6 +31,18 @@ namespace DREditor.Characters
             }
             return names;
         }
-        
+
+        public Character GetCharacter(string nameID)
+        {
+            foreach (var cha in Characters)
+            {
+                if (nameID == cha.CharacterID || nameID == cha.FullName(false) || nameID == cha.FirstName || nameID == cha.LastName)
+                {
+                    return cha;
+                }
+            }
+
+            return null;
+        }
     }
 }

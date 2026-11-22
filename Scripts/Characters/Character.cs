@@ -57,5 +57,16 @@ namespace DREditor.Characters
             }
             return name;
         }
+
+        public int GetAliasIndex(string alias)
+        {
+            for (int i = 0; i < Aliases.Count; i++)
+            {
+                if (Aliases[i].Name.Equals(alias))
+                    return i+1;
+            }
+
+            return 0;
+        }
     }
 }
