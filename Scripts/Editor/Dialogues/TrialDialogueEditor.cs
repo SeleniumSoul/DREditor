@@ -231,7 +231,7 @@ namespace DREditor.Dialogues.Editor
                     aliasNames[j] = currLine.Speaker.Aliases[j - 1].Name;
                 }
                 currLine.AliasNumber = EditorGUILayout.IntPopup(currLine.AliasNumber,
-                    aliasNames, dia.getAliasesIntValues(currLine.Speaker),
+                    aliasNames, dia.GetAliasesIntValues(currLine.Speaker),
                         GUILayout.Width(130));
             }
         }
@@ -337,7 +337,7 @@ namespace DREditor.Dialogues.Editor
                     }
 
                     currLine.ExpressionNumber = EditorGUILayout.IntPopup(currLine.ExpressionNumber,
-                        expressionNames, dia.getExpressionIntValues(currLine.Speaker), GUILayout.Width(100));
+                        expressionNames, dia.GetExpressionIntValues(currLine.Speaker), GUILayout.Width(100));
 
                     if (currLine.ExpressionNumber > 0)
                     {
