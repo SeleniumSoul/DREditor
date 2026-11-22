@@ -32,7 +32,6 @@ namespace DREditor.Dialogues
 		private Dictionary<bool, GameObject> TemporaryLoadedCharacters;
 
 		[Header("Controls")]
-		[SerializeField] private InputActionReference LookAction;
 		[SerializeField] private InputActionReference AcceptAction;
 		[SerializeField] private InputActionReference CancelAction;
 
@@ -48,21 +47,14 @@ namespace DREditor.Dialogues
 			DRModuleSystem.Inject(this);
 
 			playerInput.RegisterInput(AcceptAction, OnConfirm);
-            playerInput.RegisterInput(CancelAction, OnSkip);
-            //playerInput.RegisterInput(AcceptAction, OnConfirm);
-   //         AcceptAction.action.started += OnConfirm;
-			//CancelAction.action.performed += OnSkip;
-			//AcceptAction.action.actionMap.Enable();
+			playerInput.RegisterInput(CancelAction, OnSkip);
 
-            DiaRunData.DialogueStarted += StartDialogue;
-            DialogueEventSystem.RegisterEvents(this);
-        }
+			DiaRunData.DialogueStarted += StartDialogue;
+			DialogueEventSystem.RegisterEvents(this);
+		}
 
 		private void OnDestroy()
 		{
-			//AcceptAction.action.started -= OnConfirm;
-			//CancelAction.action.performed -= OnSkip;
-
 			DiaRunData.DialogueStarted -= StartDialogue;
 			DialogueEventSystem.DeregisterEvents(this);
 		}
@@ -77,9 +69,9 @@ namespace DREditor.Dialogues
 			{
 				if (DiaRunData.dialogueState != DiaRunData.DialogueState.Skip)
 				{
-                    DiaRunData.SetDialogueState(DiaRunData.DialogueState.Normal);
+					DiaRunData.SetDialogueState(DiaRunData.DialogueState.Normal);
 
-                    ContinueDialogue();
+					ContinueDialogue();
 				}
 				else
 				{
@@ -95,6 +87,7 @@ namespace DREditor.Dialogues
 				_ = DialogueEventSystem.TriggerEvent("FinishText");
 			}
 		}
+
 		public void OnSkip(InputAction.CallbackContext ctx)
 		{
 			//skip dialogue
@@ -156,9 +149,9 @@ namespace DREditor.Dialogues
 
 			if (asset == null)
 			{
-                _ = DialogueEventSystem.TriggerEvent("EndDialogue");
-                return;
-            }
+				_ = DialogueEventSystem.TriggerEvent("EndDialogue");
+				return;
+			}
 
 			DiaRunData.CurrentLineIndex++;
 
@@ -184,7 +177,7 @@ namespace DREditor.Dialogues
 					//Insert Choice code here.
 					DiaRunData.Advance = false;
 					_ = DialogueEventSystem.TriggerEvent("ShowChoices", asset.Choices);
-                }
+				}
 				else
 				{
 					EndDialogue();
@@ -241,21 +234,21 @@ namespace DREditor.Dialogues
 			//If there's no text inside the line, just do the dialogue events and automatically go to the next line.
 			if (line.Text == "")
 			{
-                _ = Task.WhenAll(line.DiaEvents.Select(ev => ((IDialogueEvent)ev).TriggerEvent()));
-                ContinueDialogue();
+				_ = Task.WhenAll(line.DiaEvents.Select(ev => ((IDialogueEvent)ev).TriggerEvent()));
+				ContinueDialogue();
 				return;
 			}
 			else if (line.Text.Contains("[WAIT]"))
 			{
 				if (line.DiaEvents.Count > 0)
 				{
-                    DiaRunData.Advance = false;
-                    Debug.Log("Evoking [WAIT] Dialogue Events");
+					DiaRunData.Advance = false;
+					Debug.Log("Evoking [WAIT] Dialogue Events");
 					await Task.WhenAll(line.DiaEvents.Select(ev => ((IDialogueEvent)ev).TriggerEvent()));
 					Debug.Log("Continuing Dialogue");
-                    DiaRunData.Advance = true;
-                    ContinueDialogue();
-                }
+					DiaRunData.Advance = true;
+					ContinueDialogue();
+				}
 				return;
 			}
 
@@ -264,11 +257,11 @@ namespace DREditor.Dialogues
 			{
 				Debug.Log("Evoking Dialogue Events");
 				await Task.WhenAll(line.DiaEvents.Select(ev => ((IDialogueEvent)ev).TriggerEvent()));
-            }
+			}
 
-            DiaRunData.Advance = true;
+			DiaRunData.Advance = true;
 
-            //Dialogue Text
+			//Dialogue Text
 			_ = DialogueEventSystem.TriggerEvent<Line>("PrintDialogue", line);
 
 			//Pass Dialogue Line to history
@@ -324,31 +317,8 @@ namespace DREditor.Dialogues
 			yield break;
 		}
 
-		//private async Task AutoCoroutine(float WaitTime)
-		//{
-		//	float _linelength = DiaRunData.CurrentLine.Text.Length;
-		//	float _waitTime;
-
-		//	if (WaitTime >= 0.5f)
-		//	{
-		//		_waitTime = (_linelength * 0.05f * 2f) + WaitTime;
-		//		_waitTime = Mathf.Clamp(_waitTime, 2f, 100f);
-		//	}
-		//	else
-		//	{
-		//		_waitTime = WaitTime * Time.deltaTime * 50f;
-		//	}
-
-		//	Debug.Log($"Dialogue will wait for {_waitTime} seconds.");
-		//	await Awaitable.WaitForSecondsAsync(_waitTime);
-
-		//	ContinueDialogue();
-		//}
-
-		private void SetPanelsActive(bool active)
-		{
+		private void SetPanelsActive(bool active) => 
 			_ = DialogueEventSystem.TriggerEvent("PanelActive", active);
-		}
 
 		private void SetSayboxActive(bool active) => 
 			_ = DialogueEventSystem.TriggerEvent<bool>("SetSayboxActive", active);
